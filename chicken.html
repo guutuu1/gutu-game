@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chicken Game</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #10131a;
+  color: white;
+  text-align: center;
+}
+
+header {
+  background: #171b24;
+  padding: 18px;
+  font-size: 23px;
+  font-weight: bold;
+}
+
+.game-box {
+  margin: 25px 15px;
+  padding: 25px 15px;
+  background: #1b202b;
+  border-radius: 15px;
+}
+
+.chicken {
+  font-size: 90px;
+  margin: 25px 0;
+}
+
+.multiplier {
+  font-size: 38px;
+  font-weight: bold;
+  margin: 20px;
+}
+
+.status {
+  color: #aeb4c0;
+  margin-bottom: 20px;
+}
+
+button {
+  width: 90%;
+  max-width: 350px;
+  padding: 15px;
+  border: none;
+  border-radius: 9px;
+  margin: 7px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.start {
+  background: #f5b400;
+  color: #111;
+}
+
+.cashout {
+  background: #25b864;
+  color: white;
+}
+
+.back {
+  background: #333946;
+  color: white;
+}
+
+.result {
+  margin-top: 20px;
+  font-size: 18px;
+  min-height: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+🐔 Chicken Game
+</header>
+
+<div class="game-box">
+
+  <div class="chicken">🐔</div>
+
+  <div class="multiplier" id="multiplier">
+    1.00x
+  </div>
+
+  <div class="status" id="status">
+    Press START to begin
+  </div>
+
+  <button class="start" onclick="startGame()">
+    START GAME
+  </button>
+
+  <button class="cashout" onclick="cashOut()">
+    CASH OUT
+  </button>
+
+  <button class="back" onclick="goHome()">
+    ← HOME
+  </button>
+
+  <div class="result" id="result"></div>
+
+</div>
+
+<script>
+
+let multiplier = 1.00;
+let timer = null;
+let playing = false;
+
+function startGame() {
+
+  if (playing) return;
+
+  multiplier = 1.00;
+  playing = true;
+
+  document.getElementById("result").innerText = "";
+  document.getElementById("status").innerText = "Game running...";
+
+  timer = setInterval(function() {
+
+    multiplier += 0.05;
+
+    document.getElementById("multiplier").innerText =
+      multiplier.toFixed(2) + "x";
+
+    // Random game crash
+    if (Math.random() < 0.025) {
+      crashGame();
+    }
+
+  }, 300);
+}
+
+function crashGame() {
+
+  clearInterval(timer);
+  playing = false;
+
+  document.getElementById("status").innerText =
+    "The chicken stopped!";
+
+  document.getElementById("result").innerText =
+    "💥 Game ended at " + multiplier.toFixed(2) + "x";
+}
+
+function cashOut() {
+
+  if (!playing) {
+    document.getElementById("result").innerText =
+      "Start a game first.";
+    return;
+  }
+
+  clearInterval(timer);
+  playing = false;
+
+  document.getElementById("status").innerText =
+    "You stopped the game!";
+
+  document.getElementById("result").innerText =
+    "🎉 Result: " + multiplier.toFixed(2) + "x";
+}
+
+function goHome() {
+  window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+  </html>
