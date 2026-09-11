@@ -1,11 +1,231 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gutu Game</title><style>body{font-family:Arial;background:#090d14;color:#fff;margin:0;padding:20px}main{max-width:650px;margin:auto}.card{background:#141c29;padding:20px;border-radius:16px;margin:12px 0}input,button{width:100%;padding:13px;margin:6px 0;border-radius:10px;border:0}button{background:#7357ff;color:#fff;font-weight:bold}.muted{color:#9eabbc}.admin{background:#202b3c}</style></head><body><main><div class="card"><h1>🎮 Gutu Game</h1><p class="muted">Production starter</p><input id="u" placeholder="Username"><input id="p" type="password" placeholder="Password"><button onclick="register()">Register</button><button onclick="login()">Login</button><button class="admin" onclick="adminLogin()">Admin Login</button><p id="msg"></p></div><div id="out" class="card"></div></main><script>
-async function call(url,method="GET",body){let o={method,headers:{"Content-Type":"application/json"}};if(localStorage.token)o.headers.Authorization="Bearer "+localStorage.token;if(body)o.body=JSON.stringify(body);let r=await fetch(url,o),d=await r.json();if(!r.ok)throw Error(d.error);return d}
-async function register(){try{await call("/api/register","POST",{username:u.value,password:p.value});msg.textContent="Account created. Now login."}catch(e){msg.textContent=e.message}}
-async function login(){try{let d=await call("/api/login","POST",{username:u.value,password:p.value});localStorage.token=d.token;show()}catch(e){msg.textContent=e.message}}
-async function adminLogin(){try{let d=await call("/api/admin/login","POST",{username:u.value,password:p.value});localStorage.token=d.token;out.innerHTML="<h2>👑 Admin</h2><button onclick='users()'>Users</button><button onclick='ledger()'>Ledger</button><button onclick='games()'>Game records</button><button onclick='audit()'>Audit log</button>"}catch(e){msg.textContent=e.message}}
-async function show(){let d=await call("/api/me");out.innerHTML="<h2>Welcome "+d.user.username+"</h2><p>Balance: "+d.wallet.balance+"</p><p class=muted>Real-money play is not activated.</p>"}
-async function users(){let d=await call("/api/admin/users");out.innerHTML="<h2>Users</h2>"+d.users.map(x=>"<p>"+x.id+" — "+x.username+" — "+x.status+"</p>").join("")}
-async function ledger(){let d=await call("/api/admin/ledger");out.innerHTML="<h2>Ledger</h2>"+d.rows.map(x=>"<p>"+x.user_id+" · "+x.type+" · "+x.amount+"</p>").join("")}
-async function games(){let d=await call("/api/admin/games");out.innerHTML="<h2>Games</h2>"+d.rows.map(x=>"<p>"+x.game+" · stake "+x.stake+" · payout "+x.payout+"</p>").join("")}
-async function audit(){let d=await call("/api/admin/audit");out.innerHTML="<h2>Audit</h2>"+d.rows.map(x=>"<p>"+x.admin+" · "+x.action+" · "+x.details+"</p>").join("")}
-</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GameZone</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #10131a;
+      color: white;
+    }
+
+    /* Header */
+    header {
+      background: #171b24;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-size: 23px;
+      font-weight: bold;
+    }
+
+    .login {
+      background: #f5b400;
+      color: #111;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 7px;
+      font-weight: bold;
+    }
+
+    /* Balance */
+    .balance {
+      margin: 15px;
+      padding: 18px;
+      background: #1b202b;
+      border-radius: 12px;
+    }
+
+    .balance p {
+      color: #aeb4c0;
+      font-size: 14px;
+    }
+
+    .balance h2 {
+      margin-top: 7px;
+    }
+
+    /* Welcome */
+    .welcome {
+      padding: 20px 15px;
+    }
+
+    .welcome h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .welcome p {
+      color: #aeb4c0;
+    }
+
+    /* Games */
+    .games {
+      padding: 0 15px 30px;
+    }
+
+    .games h2 {
+      margin-bottom: 15px;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .game {
+      background: #1b202b;
+      padding: 20px 10px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .game:hover {
+      transform: translateY(-3px);
+    }
+
+    .game-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .game h3 {
+      font-size: 16px;
+    }
+
+    .game p {
+      margin-top: 5px;
+      color: #969eac;
+      font-size: 12px;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #171b24;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 5px;
+      border-top: 1px solid #292f3b;
+    }
+
+    nav a {
+      color: #aeb4c0;
+      text-decoration: none;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    nav a span {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 3px;
+    }
+
+    nav a.active {
+      color: #f5b400;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">🎮 GameZone</div>
+    <button class="login">Login</button>
+  </header>
+
+  <!-- Balance -->
+  <section class="balance">
+    <p>Virtual Balance</p>
+    <h2>10,000 Points</h2>
+  </section>
+
+  <!-- Welcome -->
+  <section class="welcome">
+    <h1>Welcome 👋</h1>
+    <p>Choose a game and start playing.</p>
+  </section>
+
+  <!-- Games -->
+  <section class="games">
+    <h2>🎮 Games</h2>
+
+    <div class="game-grid">
+
+      <div class="game">
+        <div class="game-icon">🐔</div>
+        <h3>Chicken Game</h3>
+        <p>Play now</p>
+      </div>
+
+      <div class="game">
+        <div class="game-icon">🎰</div>
+        <h3>Lucky Slots</h3>
+        <p>Play now</p>
+      </div>
+
+      <div class="game">
+        <div class="game-icon">🎲</div>
+        <h3>Dice</h3>
+        <p>Play now</p>
+      </div>
+
+      <div class="game">
+        <div class="game-icon">⚽</div>
+        <h3>Football</h3>
+        <p>Play now</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Bottom Navigation -->
+  <nav>
+    <a href="#" class="active">
+      <span>🏠</span>
+      Home
+    </a>
+
+    <a href="#">
+      <span>🎮</span>
+      Games
+    </a>
+
+    <a href="#">
+      <span>🏆</span>
+      Ranking
+    </a>
+
+    <a href="#">
+      <span>👤</span>
+      Profile
+    </a>
+  </nav>
+
+</body>
+</html>
