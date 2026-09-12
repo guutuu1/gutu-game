@@ -1,231 +1,360 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameZone</title>
 
-  <title>GameZone</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
+body {
+  background: #0b1020;
+  color: white;
+  min-height: 100vh;
+}
 
-    body {
-      background: #10131a;
-      color: white;
-    }
+.header {
+  background: #121a2e;
+  padding: 18px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #26314d;
+}
 
-    /* Header */
-    header {
-      background: #171b24;
-      padding: 15px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+}
 
-    .logo {
-      font-size: 23px;
-      font-weight: bold;
-    }
+.balance {
+  background: #1d2945;
+  padding: 9px 13px;
+  border-radius: 20px;
+  font-weight: bold;
+}
 
-    .login {
-      background: #f5b400;
-      color: #111;
-      border: none;
-      padding: 9px 16px;
-      border-radius: 7px;
-      font-weight: bold;
-    }
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px 15px 40px;
+}
 
-    /* Balance */
-    .balance {
-      margin: 15px;
-      padding: 18px;
-      background: #1b202b;
-      border-radius: 12px;
-    }
+.welcome {
+  margin: 10px 0 20px;
+}
 
-    .balance p {
-      color: #aeb4c0;
-      font-size: 14px;
-    }
+.welcome h1 {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
 
-    .balance h2 {
-      margin-top: 7px;
-    }
+.welcome p {
+  color: #9ca8c2;
+}
 
-    /* Welcome */
-    .welcome {
-      padding: 20px 15px;
-    }
+.game-card {
+  background: #121a2e;
+  border: 1px solid #26314d;
+  border-radius: 20px;
+  padding: 25px 18px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
 
-    .welcome h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
+.game-icon {
+  font-size: 65px;
+  margin-bottom: 10px;
+}
 
-    .welcome p {
-      color: #aeb4c0;
-    }
+.game-card h2 {
+  margin-bottom: 8px;
+}
 
-    /* Games */
-    .games {
-      padding: 0 15px 30px;
-    }
+.game-card p {
+  color: #9ca8c2;
+  margin-bottom: 20px;
+}
 
-    .games h2 {
-      margin-bottom: 15px;
-    }
+.result {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b1020;
+  border-radius: 15px;
+  margin-bottom: 18px;
+  padding: 15px;
+  font-size: 22px;
+  font-weight: bold;
+}
 
-    .game-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
+.play-btn {
+  width: 100%;
+  border: none;
+  border-radius: 15px;
+  padding: 17px;
+  font-size: 20px;
+  font-weight: bold;
+  background: #20c878;
+  color: white;
+  cursor: pointer;
+}
 
-    .game {
-      background: #1b202b;
-      padding: 20px 10px;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+.play-btn:active {
+  transform: scale(.98);
+}
 
-    .game:hover {
-      transform: translateY(-3px);
-    }
+.play-btn:disabled {
+  opacity: .6;
+}
 
-    .game-icon {
-      font-size: 40px;
-      margin-bottom: 10px;
-    }
+.cost {
+  margin-top: 12px;
+  color: #9ca8c2;
+  font-size: 14px;
+}
 
-    .game h3 {
-      font-size: 16px;
-    }
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
 
-    .game p {
-      margin-top: 5px;
-      color: #969eac;
-      font-size: 12px;
-    }
+.stat {
+  background: #121a2e;
+  border: 1px solid #26314d;
+  border-radius: 15px;
+  padding: 16px;
+}
 
-    /* Navigation */
-    nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #171b24;
-      display: flex;
-      justify-content: space-around;
-      padding: 12px 5px;
-      border-top: 1px solid #292f3b;
-    }
+.stat span {
+  display: block;
+  color: #8e9ab3;
+  font-size: 13px;
+  margin-bottom: 7px;
+}
 
-    nav a {
-      color: #aeb4c0;
-      text-decoration: none;
-      font-size: 12px;
-      text-align: center;
-    }
+.stat strong {
+  font-size: 20px;
+}
 
-    nav a span {
-      display: block;
-      font-size: 22px;
-      margin-bottom: 3px;
-    }
+.history {
+  margin-top: 22px;
+  background: #121a2e;
+  border: 1px solid #26314d;
+  border-radius: 18px;
+  padding: 18px;
+}
 
-    nav a.active {
-      color: #f5b400;
-    }
-  </style>
+.history h3 {
+  margin-bottom: 12px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #26314d;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.win {
+  color: #20c878;
+}
+
+.loss {
+  color: #ff5c70;
+}
+
+.empty {
+  color: #8e9ab3;
+  font-size: 14px;
+}
+
+.footer {
+  text-align: center;
+  color: #66728c;
+  font-size: 12px;
+  margin-top: 25px;
+}
+</style>
 </head>
 
 <body>
 
-  <!-- Header -->
-  <header>
-    <div class="logo">🎮 GameZone</div>
-    <button class="login">Login</button>
-  </header>
+<header class="header">
+  <div class="logo">🎮 GameZone</div>
+  <div class="balance">🪙 <span id="balance">1000</span></div>
+</header>
 
-  <!-- Balance -->
-  <section class="balance">
-    <p>Virtual Balance</p>
-    <h2>10,000 Points</h2>
-  </section>
+<main class="container">
 
-  <!-- Welcome -->
   <section class="welcome">
-    <h1>Welcome 👋</h1>
-    <p>Choose a game and start playing.</p>
+    <h1>One Tap. One Chance.</h1>
+    <p>Play with virtual coins and see your result instantly.</p>
   </section>
 
-  <!-- Games -->
-  <section class="games">
-    <h2>🎮 Games</h2>
+  <section class="game-card">
 
-    <div class="game-grid">
+    <div class="game-icon">🎰</div>
 
-      <div class="game">
-        <div class="game-icon">🐔</div>
-        <h3>Chicken Game</h3>
-        <p>Play now</p>
-      </div>
+    <h2>Lucky Tap</h2>
 
-      <div class="game">
-        <div class="game-icon">🎰</div>
-        <h3>Lucky Slots</h3>
-        <p>Play now</p>
-      </div>
+    <p>Tap PLAY and test your luck.</p>
 
-      <div class="game">
-        <div class="game-icon">🎲</div>
-        <h3>Dice</h3>
-        <p>Play now</p>
-      </div>
-
-      <div class="game">
-        <div class="game-icon">⚽</div>
-        <h3>Football</h3>
-        <p>Play now</p>
-      </div>
-
+    <div class="result" id="result">
+      Ready to play?
     </div>
+
+    <button class="play-btn" id="playBtn" onclick="playGame()">
+      PLAY
+    </button>
+
+    <div class="cost">
+      Cost per play: 🪙 50 coins
+    </div>
+
   </section>
 
-  <!-- Bottom Navigation -->
-  <nav>
-    <a href="#" class="active">
-      <span>🏠</span>
-      Home
-    </a>
+  <section class="stats">
 
-    <a href="#">
-      <span>🎮</span>
-      Games
-    </a>
+    <div class="stat">
+      <span>Total Plays</span>
+      <strong id="plays">0</strong>
+    </div>
 
-    <a href="#">
-      <span>🏆</span>
-      Ranking
-    </a>
+    <div class="stat">
+      <span>Wins</span>
+      <strong id="wins">0</strong>
+    </div>
 
-    <a href="#">
-      <span>👤</span>
-      Profile
-    </a>
-  </nav>
+  </section>
+
+  <section class="history">
+
+    <h3>Recent Plays</h3>
+
+    <div id="history">
+      <div class="empty">Your plays will appear here.</div>
+    </div>
+
+  </section>
+
+  <div class="footer">
+    Demo game • Virtual coins only
+  </div>
+
+</main>
+
+<script>
+
+let balance = 1000;
+let plays = 0;
+let wins = 0;
+
+const playCost = 50;
+
+function playGame() {
+
+  if (balance < playCost) {
+    document.getElementById("result").textContent =
+      "Not enough virtual coins.";
+    return;
+  }
+
+  const button = document.getElementById("playBtn");
+
+  button.disabled = true;
+  button.textContent = "PLAYING...";
+
+  balance -= playCost;
+  plays++;
+
+  document.getElementById("balance").textContent = balance;
+  document.getElementById("plays").textContent = plays;
+
+  document.getElementById("result").textContent = "🎲 Rolling...";
+
+  setTimeout(function() {
+
+    const random = Math.random();
+    let prize = 0;
+
+    if (random < 0.08) {
+      prize = 500;
+    } else if (random < 0.20) {
+      prize = 200;
+    } else if (random < 0.40) {
+      prize = 100;
+    }
+
+    if (prize > 0) {
+
+      balance += prize;
+      wins++;
+
+      document.getElementById("result").innerHTML =
+        "🎉 YOU WIN<br>+🪙 " + prize;
+
+      document.getElementById("wins").textContent = wins;
+
+      addHistory("WIN +" + prize, true);
+
+    } else {
+
+      document.getElementById("result").textContent =
+        "😔 No prize this time";
+
+      addHistory("LOSS -50", false);
+    }
+
+    document.getElementById("balance").textContent = balance;
+
+    button.disabled = false;
+    button.textContent = "PLAY";
+
+  }, 700);
+}
+
+function addHistory(text, isWin) {
+
+  const history = document.getElementById("history");
+
+  const empty = history.querySelector(".empty");
+
+  if (empty) {
+    empty.remove();
+  }
+
+  const item = document.createElement("div");
+
+  item.className = "history-item";
+
+  item.innerHTML =
+    "<span>🎮 Lucky Tap</span>" +
+    "<strong class='" + (isWin ? "win" : "loss") + "'>" +
+    text +
+    "</strong>";
+
+  history.prepend(item);
+
+  if (history.children.length > 10) {
+    history.removeChild(history.lastChild);
+  }
+}
+
+</script>
 
 </body>
-</html>
+  </html>
