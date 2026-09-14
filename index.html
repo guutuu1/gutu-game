@@ -355,6 +355,62 @@ function addHistory(text, isWin) {
 }
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<div id="authBox" style="max-width:400px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;">
+  <h2>Gutu Game</h2>
+
+  <input id="email" type="email" placeholder="Email"
+    style="width:100%;padding:12px;margin:6px 0;box-sizing:border-box;">
+
+  <input id="password" type="password" placeholder="Password"
+    style="width:100%;padding:12px;margin:6px 0;box-sizing:border-box;">
+
+  <button id="signupBtn" style="padding:12px;margin:6px 4px 6px 0;">
+    Sign Up
+  </button>
+
+  <button id="loginBtn" style="padding:12px;margin:6px 0;">
+    Login
+  </button>
+
+  <p id="authMessage"></p>
+</div>
+
+<script>
+const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+document.getElementById("signupBtn").onclick = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { error } = await supabase.auth.signUp({
+    email: email,
+    password: password
+  });
+
+  document.getElementById("authMessage").textContent =
+    error ? error.message : "Sign up successful! Check your email.";
+};
+
+document.getElementById("loginBtn").onclick = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  document.getElementById("authMessage").textContent =
+    error ? error.message : "Login successful!";
+};
+    </script>
 </body>
   </html>
