@@ -378,43 +378,109 @@ function addHistory(text, isWin) {
 </div>
 
 <script>
-document.getElementById("authMessage").textContent = "JavaScript is running";
-const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
-const SUPABASE_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><div id="authBox" style="max-width:400px;margin:20px auto;padding:20px;background:#121a2e;border:1px solid #26314d;border-radius:12px;color:white;">  <h2>🔐 Gutu Game Login</h2><input
+id="email"
+type="email"
+placeholder="Email"
+style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
 
-const supabase = window.supabase.createClient(
+«»
+
+<input
+id="password"
+type="password"
+placeholder="Password"
+style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
+
+«»
+
+<button
+id="signupBtn"
+style="padding:12px;margin:8px 4px 8px 0;"
+
+«»
+
+Sign Up
+
+  </button><button
+id="loginBtn"
+style="padding:12px;margin:8px 0;"
+
+«»
+
+Login
+
+  </button>  <p id="authMessage" style="margin-top:12px;"></p></div><script>
+
+const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
 
-document.getElementById("signupBtn").onclick = async function () {
-  const email = document.getElementById("email").value;
+const message = document.getElementById("authMessage");
+
+document.getElementById("signupBtn").addEventListener("click", async function () {
+
+  const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
-  const { error } = await supabase.auth.signUp({
+  if (!email || !password) {
+    message.textContent = "Please enter your email and password.";
+    return;
+  }
+
+  if (password.length < 6) {
+    message.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+
+  message.textContent = "Creating account...";
+
+  const { error } = await supabaseClient.auth.signUp({
     email: email,
     password: password
   });
 
-  document.getElementById("authMessage").textContent =
-    error ? error.message : "Sign up successful! Check your email.";
-};
+  if (error) {
+    message.textContent = "❌ " + error.message;
+  } else {
+    message.textContent =
+      "✅ Account created! Check your email to confirm your account.";
+  }
 
-document.getElementById("loginBtn").onclick = async function () {
-  const email = document.getElementById("email").value;
+});
+
+document.getElementById("loginBtn").addEventListener("click", async function () {
+
+  const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password
-  });
+  if (!email || !password) {
+    message.textContent = "Please enter your email and password.";
+    return;
+  }
 
-  document.getElementById("authMessage").textContent =
-    error ? error.message : "Login successful!";
-};
-    </script>
-  <script>
-document.getElementById("authMessage").textContent = "TEST 2";
-  </script>
+  message.textContent = "Logging in...";
+
+  const { error } =
+    await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+  if (error) {
+    message.textContent = "❌ " + error.message;
+  } else {
+    message.textContent = "✅ Login successful!";
+  }
+
+});
+
+</script>
 </body>
   </html>
