@@ -355,63 +355,23 @@ function addHistory(text, isWin) {
 }
 
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><div id="authBox" style="max-width:400px;margin:20px auto;padding:20px;background:#121a2e;border:1px solid #26314d;border-radius:12px;color:white;">  <h2>🔐 Gutu Game Login</h2><input id="email" type="email" placeholder="Email"
+style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;">
 
-<div id="authBox" style="max-width:400px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;">
-  <h2>Gutu Game</h2>
+<input id="password" type="password" placeholder="Password"
+style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;">
 
-  <input id="email" type="email" placeholder="Email"
-    style="width:100%;padding:12px;margin:6px 0;box-sizing:border-box;">
-
-  <input id="password" type="password" placeholder="Password"
-    style="width:100%;padding:12px;margin:6px 0;box-sizing:border-box;">
-
-  <button id="signupBtn" style="padding:12px;margin:6px 4px 6px 0;">
-    Sign Up
-  </button>
-
-  <button id="loginBtn" style="padding:12px;margin:6px 0;">
-    Login
-  </button>
-
-  <p id="authMessage"></p>
-</div>
-
-<script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><div id="authBox" style="max-width:400px;margin:20px auto;padding:20px;background:#121a2e;border:1px solid #26314d;border-radius:12px;color:white;">  <h2>🔐 Gutu Game Login</h2><input
-id="email"
-type="email"
-placeholder="Email"
-style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
-
-«»
-
-<input
-id="password"
-type="password"
-placeholder="Password"
-style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
-
-«»
-
-<button
-id="signupBtn"
-style="padding:12px;margin:8px 4px 8px 0;"
-
-«»
-
+<button id="signupBtn" type="button"
+style="padding:12px;margin:8px 4px 8px 0;">
 Sign Up
+</button>
 
-  </button><button
-id="loginBtn"
-style="padding:12px;margin:8px 0;"
-
-«»
-
+<button id="loginBtn" type="button"
+style="padding:12px;margin:8px 0;">
 Login
+</button>
 
-  </button>  <p id="authMessage" style="margin-top:12px;"></p></div><script>
-
+  <p id="authMessage" style="margin-top:12px;"></p></div><script>
 const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
 const SUPABASE_KEY =
@@ -452,7 +412,6 @@ document.getElementById("signupBtn").addEventListener("click", async function ()
     message.textContent =
       "✅ Account created! Check your email to confirm your account.";
   }
-
 });
 
 document.getElementById("loginBtn").addEventListener("click", async function () {
@@ -467,20 +426,18 @@ document.getElementById("loginBtn").addEventListener("click", async function () 
 
   message.textContent = "Logging in...";
 
-  const { error } =
-    await supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
 
   if (error) {
     message.textContent = "❌ " + error.message;
   } else {
     message.textContent = "✅ Login successful!";
   }
-
 });
-
 </script>
+
 </body>
   </html>
