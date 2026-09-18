@@ -413,6 +413,32 @@ document.getElementById("signupBtn").addEventListener("click", async function ()
       "✅ Account created! Check your email to confirm your account.";
   }
 });
+    document.getElementById("forgotBtn").addEventListener("click", async function () {
+
+  const email = document.getElementById("email").value.trim();
+
+  if (!email) {
+    message.textContent = "Please enter your email first.";
+    return;
+  }
+
+  message.textContent = "Sending password reset email...";
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    email,
+    {
+      redirectTo: "https://gutu-game.onrender.com/index.html"
+    }
+  );
+
+  if (error) {
+    message.textContent = "❌ " + error.message;
+  } else {
+    message.textContent =
+      "✅ Check your email for the password reset link.";
+  }
+
+});
 
 document.getElementById("loginBtn").addEventListener("click", async function () {
 
