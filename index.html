@@ -420,6 +420,41 @@ const supabaseClient = window.supabase.createClient(
 );
 
 const message = document.getElementById("authMessage");
+  document.getElementById("updatePasswordBtn").addEventListener("click", async function () {
+
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+  const resetMessage = document.getElementById("resetMessage");
+
+  if (!newPassword || !confirmPassword) {
+    resetMessage.textContent = "Please enter both password fields.";
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    resetMessage.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    resetMessage.textContent = "Passwords do not match.";
+    return;
+  }
+
+  resetMessage.textContent = "Updating password...";
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) {
+    resetMessage.textContent = "❌ " + error.message;
+  } else {
+    resetMessage.textContent =
+      "✅ Password updated successfully! You can now log in.";
+  }
+
+});
 
 document.getElementById("signupBtn").addEventListener("click", async function () {
 
