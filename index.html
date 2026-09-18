@@ -471,13 +471,15 @@ document.getElementById("loginBtn").addEventListener("click", async function () 
 }, 1000);
   }
 });
-    supabaseClient.auth.onAuthStateChange((event, session) => {
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
 
   if (event === "PASSWORD_RECOVERY") {
 
     document.getElementById("resetBox").style.display = "block";
 
-    document.getElementById("authBox").style.display = "none";
+    document.getElementById("resetMessage").textContent =
+      "Enter your new password below.";
 
   }
 
