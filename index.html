@@ -545,9 +545,10 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 
     document.getElementById("resetBox").style.display = "block";
 
+    document.getElementById("authBox").style.display = "none";
+
     document.getElementById("resetMessage").textContent =
       "Enter your new password below.";
-
   }
 
 });
