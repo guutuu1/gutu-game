@@ -151,6 +151,37 @@ button {
 let multiplier = 1.00;
 let timer = null;
 let playing = false;
+  async function loadBalance() {
+
+  const { data: { user } } =
+    await supabase.auth.getUser();
+
+  if (!user) {
+    document.getElementById("balance").innerText =
+      "Please sign in";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error(error);
+
+    document.getElementById("balance").innerText =
+      "Error loading balance";
+
+    return;
+  }
+
+  document.getElementById("balance").innerText =
+    Number(data.balance).toFixed(2);
+}
+
+loadBalance();
 
 function startGame() {
 
