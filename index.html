@@ -376,7 +376,41 @@ style="padding:12px;margin:8px 0;">
 Forgot Password
 </button>
 
-  <p id="authMessage" style="margin-top:12px;"></p></div><script>
+  <p id="authMessage" style="margin-top:12px;"></p>
+
+<div id="resetBox" style="display:none;max-width:400px;margin:20px auto;padding:20px;background:#121a2e;border:1px solid #26314d;border-radius:12px;color:white;">
+
+  <h2>🔐 Reset Password</h2>
+
+  <input
+    id="newPassword"
+    type="password"
+    placeholder="New Password"
+    style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
+  >
+
+  <input
+    id="confirmPassword"
+    type="password"
+    placeholder="Confirm New Password"
+    style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box;"
+  >
+
+  <button
+    id="updatePasswordBtn"
+    type="button"
+    style="padding:12px;margin:8px 0;"
+  >
+    UPDATE PASSWORD
+  </button>
+
+  <p id="resetMessage" style="margin-top:12px;"></p>
+
+</div>
+
+</div>
+
+<script>
 const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
 const SUPABASE_KEY =
