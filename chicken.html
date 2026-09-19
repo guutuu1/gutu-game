@@ -117,8 +117,13 @@ button {
 JAVASCRIPT TEST
   </div>
   <script>
-document.getElementById("testMessage").innerText = "JAVASCRIPT IS WORKING";
-document.getElementById("testMessage").style.background = "green";
+if (typeof window.supabase === "undefined") {
+  document.getElementById("testMessage").innerText =
+    "JAVASCRIPT WORKS — SUPABASE NOT LOADED";
+} else {
+  document.getElementById("testMessage").innerText =
+    "JAVASCRIPT WORKS — SUPABASE LOADED";
+}
   </script>
 
 <header>
