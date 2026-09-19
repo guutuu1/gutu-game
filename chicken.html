@@ -227,23 +227,35 @@ let playing = false;
 ========================= */
 
 async function loadBalance() {
-  
-  document.getElementById("balance").innerText = "TESTING...";
-console.log("loadBalance started");
 
   const balanceElement =
     document.getElementById("balance");
 
+  balanceElement.innerText = "Checking...";
+
   try {
 
+    console.log("1. Checking Supabase session...");
+
     const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
+      data: sessionData,
+      error: sessionError
+    } = await supabase.auth.getSession();
 
-    if (userError) {
+    if (sessionError) {
 
-      console.error(userError);
+      console.error("SESSION ERROR:", sessionError);
+
+      balanceElement.innerText = "Session error";
+
+      return;
+    }
+
+    const session = sessionData.session;
+
+    if (!session) {
+
+      console.log("NO USER SESSION");
 
       balanceElement.innerText =
         "Please sign in";
@@ -251,13 +263,11 @@ console.log("loadBalance started");
       return;
     }
 
-    if (!user) {
+    const user = session.user;
 
-      balanceElement.innerText =
-        "Please sign in";
+    console.log("2. User ID:", user.id);
 
-      return;
-    }
+    console.log("3. Loading wallet...");
 
     const {
       data,
@@ -270,10 +280,7 @@ console.log("loadBalance started");
 
     if (error) {
 
-      console.error(
-        "Wallet error:",
-        error
-      );
+      console.error("WALLET ERROR:", error);
 
       balanceElement.innerText =
         "Wallet error";
@@ -281,7 +288,11 @@ console.log("loadBalance started");
       return;
     }
 
+    console.log("4. Wallet data:", data);
+
     if (!data) {
+
+      console.log("NO WALLET ROW FOUND");
 
       balanceElement.innerText =
         "0.00";
@@ -290,15 +301,19 @@ console.log("loadBalance started");
     }
 
     balanceElement.innerText =
-      Number(data.balance || 0)
-        .toFixed(2);
+      Number(data.balance || 0).toFixed(2);
+
+    console.log(
+      "5. BALANCE:",
+      data.balance
+    );
 
   }
 
   catch (error) {
 
     console.error(
-      "Balance error:",
+      "BALANCE ERROR:",
       error
     );
 
@@ -307,7 +322,7 @@ console.log("loadBalance started");
 
   }
 
-}
+      }
 
 
 /* =========================
