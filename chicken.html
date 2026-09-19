@@ -154,10 +154,7 @@ const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
 const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const supabase = null;
 
 let multiplier = 1.00;
 let timer = null;
@@ -192,9 +189,7 @@ let playing = false;
     Number(data.balance).toFixed(2);
 }
 
-loadBalance().catch(function(error) {
-  console.error("Balance error:", error);
-});
+// Balance temporarily disabled for testing
 
 function startGame() {
 
