@@ -323,7 +323,107 @@ async function loadBalance() {
   }
 
       }
+/* =========================
+   LOAD BALANCE
+========================= */
 
+async function loadBalance() {
+
+  const balanceElement =
+    document.getElementById("balance");
+
+  balanceElement.innerText = "Checking...";
+
+  try {
+
+    console.log("1. Checking Supabase session...");
+
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+
+      console.error("SESSION ERROR:", sessionError);
+
+      balanceElement.innerText = "Session error";
+
+      return;
+    }
+
+    const session = sessionData.session;
+
+    if (!session) {
+
+      console.log("NO USER SESSION");
+
+      balanceElement.innerText =
+        "Please sign in";
+
+      return;
+    }
+
+    const user = session.user;
+
+    console.log("2. User ID:", user.id);
+
+    console.log("3. Loading wallet...");
+
+    const {
+      data,
+      error
+    } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+
+      console.error("WALLET ERROR:", error);
+
+      balanceElement.innerText =
+        "Wallet error";
+
+      return;
+    }
+
+    console.log("4. Wallet data:", data);
+
+    if (!data) {
+
+      console.log("NO WALLET ROW FOUND");
+
+      balanceElement.innerText =
+        "0.00";
+
+      return;
+    }
+
+    balanceElement.innerText =
+      Number(data.balance || 0).toFixed(2);
+
+    console.log(
+      "5. BALANCE:",
+      data.balance
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "BALANCE ERROR:",
+      error
+    );
+
+    balanceElement.innerText =
+      "Error";
+
+  }
+
+  }
 
 /* =========================
    START GAME
