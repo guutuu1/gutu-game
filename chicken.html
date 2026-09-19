@@ -33,6 +33,10 @@ header {
   border-radius: 12px;
   font-size: 20px;
   font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .game-box {
@@ -58,7 +62,7 @@ header {
   margin-bottom: 20px;
 }
 
-input {
+input, select {
   width: 90%;
   max-width: 350px;
   padding: 15px;
@@ -66,6 +70,7 @@ input {
   border: none;
   font-size: 17px;
   text-align: center;
+  margin-bottom: 10px;
 }
 
 button {
@@ -80,25 +85,39 @@ button {
   cursor: pointer;
 }
 
-.start {
-  background: #f5b400;
-  color: #111;
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.cashout {
-  background: #25b864;
-  color: white;
-}
-
-.back {
-  background: #333946;
-  color: white;
-}
+.start { background: #f5b400; color: #111; }
+.cashout { background: #25b864; color: white; }
+.withdraw-btn { background: #007bff; color: white; padding: 10px 20px; font-size: 15px; width: auto; }
+.back { background: #333946; color: white; }
 
 .result {
   margin-top: 20px;
   font-size: 18px;
   min-height: 25px;
+}
+
+/* Modal Overlay */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: #1b202b;
+  padding: 25px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 400px;
 }
 </style>
 </head>
@@ -109,20 +128,14 @@ button {
   🐔 Chicken Game
 </header>
 
-<div id="testMessage" style="background:red; color:white; padding:15px; margin:10px; font-size:20px;">
-  JAVASCRIPT TEST
-</div>
-
 <div id="balanceBox">
-  💰 Balance: <span id="balance">Loading...</span> ETB
+  <div>💰 Balance: <span id="balance">Loading...</span> ETB</div>
+  <button class="withdraw-btn" id="openWithdrawModal">💸 Withdraw Funds</button>
 </div>
 
 <div class="game-box">
-
   <div class="chicken">🐔</div>
-
   <div class="multiplier" id="multiplier">1.00x</div>
-
   <div class="status" id="status">Press START to begin</div>
 
   <div style="margin: 15px 0;">
@@ -134,38 +147,43 @@ button {
   <button class="back" id="homeBtn">← HOME</button>
 
   <div class="result" id="result"></div>
-
 </div>
 
-<!-- SUPABASE CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- WITHDRAWAL MODAL -->
+<div class="modal" id="withdrawModal">
+  <div class="modal-content">
+    <h3>Withdraw Funds</h3>
+    <br>
+    <select id="withdrawMethod">
+      <option value="Telebirr">Telebirr</option>
+      <option value="CBE Birr">CBE Birr</option>
+      <option value="Bank Transfer">Bank Transfer</option>
+    </select>
+    <br>
+    <input type="text" id="withdrawAccount" placeholder="Phone or Account Number">
+    <br>
+    <input type="number" id="withdrawAmount" placeholder="Amount (ETB)" min="10">
+    <br>
+    <button class="cashout" id="submitWithdraw">Confirm Request</button>
+    <button class="back" id="closeWithdrawModal">Cancel</button>
+  </div>
+</div>
 
 <script>
-/* =========================
-   GAME VARIABLES
-========================= */
 let multiplier = 1.00;
 let timer = null;
 let playing = false;
-let currentBalance = 500.00; // Default starter balance
+let currentBalance = 500.00;
 let currentBet = 0;
 
-// Hide JS test banner when code runs successfully
-document.getElementById("testMessage").style.display = "none";
-
-/* =========================
-   LOAD BALANCE (LOCAL STORAGE DEMO MODE)
-========================= */
 function loadBalance() {
   const savedBalance = localStorage.getItem("chicken_game_balance");
-  
-  if (savedBalance !== null) {
+  if (savedBalance !== null && !isNaN(Number(savedBalance))) {
     currentBalance = Number(savedBalance);
   } else {
-    currentBalance = 500.00; // Automatically credit 500 ETB for testing
+    currentBalance = 500.00;
     localStorage.setItem("chicken_game_balance", currentBalance);
   }
-
   document.getElementById("balance").innerText = currentBalance.toFixed(2);
 }
 
@@ -175,9 +193,6 @@ function updateBalance(newAmount) {
   document.getElementById("balance").innerText = currentBalance.toFixed(2);
 }
 
-/* =========================
-   START GAME
-========================= */
 function startGame() {
   if (playing) return;
 
@@ -200,6 +215,8 @@ function startGame() {
   multiplier = 1.00;
   playing = true;
 
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("cashoutBtn").disabled = false;
   document.getElementById("multiplier").innerText = "1.00x";
   document.getElementById("result").innerText = "";
   document.getElementById("status").innerText = "Game running...";
@@ -208,42 +225,28 @@ function startGame() {
     multiplier += 0.05;
     document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
 
-    // Random crash chance (~2.5% chance per tick)
-    if (Math.random() < 0.025) {
+    if (Math.random() < 0.03) {
       crashGame();
     }
-  }, 300);
+  }, 250);
 }
 
-/* =========================
-   CRASH GAME
-========================= */
 function crashGame() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-
+  if (timer) { clearInterval(timer); timer = null; }
   playing = false;
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("cashoutBtn").disabled = true;
   document.getElementById("status").innerText = "The chicken crashed!";
   document.getElementById("result").innerText = "💥 Game crashed at " + multiplier.toFixed(2) + "x. You lost " + currentBet.toFixed(2) + " ETB.";
 }
 
-/* =========================
-   CASH OUT
-========================= */
 function cashOut() {
-  if (!playing) {
-    document.getElementById("result").innerText = "Start a game first.";
-    return;
-  }
-
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-
+  if (!playing) return;
+  if (timer) { clearInterval(timer); timer = null; }
   playing = false;
+
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("cashoutBtn").disabled = true;
 
   const totalPayout = currentBet * multiplier;
   updateBalance(currentBalance + totalPayout);
@@ -252,21 +255,58 @@ function cashOut() {
   document.getElementById("result").innerText = "🎉 Won " + totalPayout.toFixed(2) + " ETB at " + multiplier.toFixed(2) + "x!";
 }
 
-function goHome() {
-  window.location.href = "index.html";
+/* =========================
+   WITHDRAWAL SYSTEM
+========================= */
+function handleWithdraw() {
+  const method = document.getElementById("withdrawMethod").value;
+  const account = document.getElementById("withdrawAccount").value.trim();
+  const amount = Number(document.getElementById("withdrawAmount").value);
+
+  if (!account) {
+    alert("Please enter a valid account or phone number.");
+    return;
+  }
+
+  if (!amount || amount <= 0) {
+    alert("Please enter a valid withdrawal amount.");
+    return;
+  }
+
+  if (amount > currentBalance) {
+    alert("Insufficient balance for this withdrawal.");
+    return;
+  }
+
+  // Deduct balance immediately
+  updateBalance(currentBalance - amount);
+
+  alert(`Withdrawal request submitted successfully!\n\nAmount: ${amount.toFixed(2)} ETB\nMethod: ${method}\nAccount: ${account}`);
+
+  // Reset & close modal
+  document.getElementById("withdrawAccount").value = "";
+  document.getElementById("withdrawAmount").value = "";
+  document.getElementById("withdrawModal").style.display = "none";
 }
 
-/* =========================
-   INITIALIZATION
-========================= */
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("cashoutBtn").addEventListener("click", cashOut);
-  document.getElementById("homeBtn").addEventListener("click", goHome);
+  document.getElementById("homeBtn").addEventListener("click", function() { window.location.href = "index.html"; });
 
+  // Modal Controls
+  document.getElementById("openWithdrawModal").addEventListener("click", function() {
+    document.getElementById("withdrawModal").style.display = "flex";
+  });
+  document.getElementById("closeWithdrawModal").addEventListener("click", function() {
+    document.getElementById("withdrawModal").style.display = "none";
+  });
+  document.getElementById("submitWithdraw").addEventListener("click", handleWithdraw);
+
+  document.getElementById("cashoutBtn").disabled = true;
   loadBalance();
 });
 </script>
 
 </body>
-  </html>
+</html>
