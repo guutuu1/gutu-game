@@ -168,7 +168,7 @@ let currentBet = 0;
 let currentUser = null;
 
 /* =========================
-   LOAD BALANCE
+   LOAD BALANCE (AUTO-SEED FOR NEW PLAYERS)
 ========================= */
 async function loadBalance() {
   const balanceElement = document.getElementById("balance");
@@ -189,19 +189,27 @@ async function loadBalance() {
 
     currentUser = sessionData.session.user;
 
-    const { data, error } = await supabaseClient
+    // 1. Try to fetch the user's existing wallet
+    let { data, error } = await supabaseClient
       .from("wallets")
       .select("balance")
       .eq("user_id", currentUser.id)
       .maybeSingle();
 
-    if (error || !data) {
-      balanceElement.innerText = "0.00";
-      currentBalance = 0;
-      return;
+    // 2. If the user doesn't have a wallet row yet, automatically create one with 100 ETB starter cash!
+    if (!data) {
+      const { data: newWallet, error: createError } = await supabaseClient
+        .from("wallets")
+        .insert([{ user_id: currentUser.id, balance: 100 }])
+        .select()
+        .single();
+
+      if (!createError && newWallet) {
+        data = newWallet;
+      }
     }
 
-    currentBalance = Number(data.balance || 0);
+    currentBalance = Number(data?.balance || 0);
     balanceElement.innerText = currentBalance.toFixed(2);
 
   } catch (error) {
