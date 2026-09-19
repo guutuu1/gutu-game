@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Chicken Game</title>
 
 <style>
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -23,6 +25,15 @@ header {
   background: #171b24;
   padding: 18px;
   font-size: 23px;
+  font-weight: bold;
+}
+
+#balanceBox {
+  background: #252c3b;
+  padding: 15px;
+  margin: 20px 15px;
+  border-radius: 12px;
+  font-size: 20px;
   font-weight: bold;
 }
 
@@ -47,6 +58,16 @@ header {
 .status {
   color: #aeb4c0;
   margin-bottom: 20px;
+}
+
+input {
+  width: 90%;
+  max-width: 350px;
+  padding: 15px;
+  border-radius: 9px;
+  border: none;
+  font-size: 17px;
+  text-align: center;
 }
 
 button {
@@ -81,6 +102,7 @@ button {
   font-size: 18px;
   min-height: 25px;
 }
+
 </style>
 </head>
 
@@ -89,20 +111,18 @@ button {
 <header>
 🐔 Chicken Game
 </header>
-  <div id="balanceBox" style="
-  background: #252c3b;
-  padding: 15px;
-  margin: 20px 15px;
-  border-radius: 12px;
-  font-size: 20px;
-  font-weight: bold;
-">
-  💰 Balance: <span id="balance">Loading...</span> ETB
-  </div>
+
+<div id="balanceBox">
+  💰 Balance:
+  <span id="balance">Loading...</span>
+  ETB
+</div>
 
 <div class="game-box">
 
-  <div class="chicken">🐔</div>
+  <div class="chicken">
+    🐔
+  </div>
 
   <div class="multiplier" id="multiplier">
     1.00x
@@ -111,34 +131,28 @@ button {
   <div class="status" id="status">
     Press START to begin
   </div>
+
   <div style="margin: 15px 0;">
-  <input
-    type="number"
-    id="betAmount"
-    placeholder="Enter bet amount"
-    min="1"
-    step="1"
-    style="
-      width: 90%;
-      max-width: 350px;
-      padding: 15px;
-      border-radius: 9px;
-      border: none;
-      font-size: 17px;
-      text-align: center;
-    "
-  >
+
+    <input
+      type="number"
+      id="betAmount"
+      placeholder="Enter bet amount"
+      min="1"
+      step="1"
+    >
+
   </div>
 
-  <button class="start" onclick="startGame()">
+  <button class="start" id="startBtn">
     START GAME
   </button>
 
-  <button class="cashout" onclick="cashOut()">
+  <button class="cashout" id="cashoutBtn">
     CASH OUT
   </button>
 
-  <button class="back" onclick="goHome()">
+  <button class="back" id="homeBtn">
     ← HOME
   </button>
 
@@ -146,109 +160,320 @@ button {
 
 </div>
 
+
+<!-- SUPABASE -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 
-const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+/* =========================
+   SUPABASE CONNECTION
+========================= */
 
-const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+const SUPABASE_URL =
+  "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
-const supabase = null;
+const SUPABASE_ANON_KEY =
+  "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+const supabase =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+
+/* =========================
+   GAME VARIABLES
+========================= */
 
 let multiplier = 1.00;
+
 let timer = null;
+
 let playing = false;
-  async function loadBalance() {
 
-  const { data: { user } } =
-    await supabase.auth.getUser();
 
-  if (!user) {
-    document.getElementById("balance").innerText =
-      "Please sign in";
-    return;
+/* =========================
+   LOAD BALANCE
+========================= */
+
+async function loadBalance() {
+
+  const balanceElement =
+    document.getElementById("balance");
+
+  try {
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error(userError);
+
+      balanceElement.innerText =
+        "Please sign in";
+
+      return;
+    }
+
+    if (!user) {
+
+      balanceElement.innerText =
+        "Please sign in";
+
+      return;
+    }
+
+
+    const {
+      data,
+      error
+    } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+
+    if (error) {
+
+      console.error(
+        "Wallet error:",
+        error
+      );
+
+      balanceElement.innerText =
+        "Wallet error";
+
+      return;
+    }
+
+
+    if (!data) {
+
+      balanceElement.innerText =
+        "0.00";
+
+      return;
+    }
+
+
+    balanceElement.innerText =
+      Number(data.balance || 0)
+        .toFixed(2);
+
   }
 
-  const { data, error } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("user_id", user.id)
-    .single();
+  catch (error) {
 
-  if (error) {
-    console.error(error);
+    console.error(
+      "Balance error:",
+      error
+    );
 
-    document.getElementById("balance").innerText =
-      "Error loading balance";
+    balanceElement.innerText =
+      "Error";
 
-    return;
   }
 
-  document.getElementById("balance").innerText =
-    Number(data.balance).toFixed(2);
 }
 
-// Balance temporarily disabled for testing
+
+/* =========================
+   START GAME
+========================= */
 
 function startGame() {
 
-  if (playing) return;
+  if (playing) {
+    return;
+  }
+
+
+  const betInput =
+    document.getElementById("betAmount");
+
+  const bet =
+    Number(betInput.value);
+
+
+  if (!bet || bet <= 0) {
+
+    document.getElementById("result")
+      .innerText =
+      "Please enter a bet amount.";
+
+    return;
+  }
+
 
   multiplier = 1.00;
+
   playing = true;
 
-  document.getElementById("result").innerText = "";
-  document.getElementById("status").innerText = "Game running...";
+
+  document.getElementById("multiplier")
+    .innerText = "1.00x";
+
+
+  document.getElementById("result")
+    .innerText = "";
+
+
+  document.getElementById("status")
+    .innerText =
+    "Game running...";
+
 
   timer = setInterval(function() {
 
     multiplier += 0.05;
 
-    document.getElementById("multiplier").innerText =
+
+    document.getElementById("multiplier")
+      .innerText =
       multiplier.toFixed(2) + "x";
 
-    // Random game crash
+
+    /*
+      Temporary random crash
+    */
+
     if (Math.random() < 0.025) {
+
       crashGame();
+
     }
 
   }, 300);
+
 }
+
+
+/* =========================
+   CRASH GAME
+========================= */
 
 function crashGame() {
 
-  clearInterval(timer);
+  if (timer) {
+
+    clearInterval(timer);
+
+    timer = null;
+
+  }
+
+
   playing = false;
 
-  document.getElementById("status").innerText =
+
+  document.getElementById("status")
+    .innerText =
     "The chicken stopped!";
 
-  document.getElementById("result").innerText =
-    "💥 Game ended at " + multiplier.toFixed(2) + "x";
+
+  document.getElementById("result")
+    .innerText =
+    "💥 Game ended at " +
+    multiplier.toFixed(2) +
+    "x";
+
 }
+
+
+/* =========================
+   CASH OUT
+========================= */
 
 function cashOut() {
 
   if (!playing) {
-    document.getElementById("result").innerText =
+
+    document.getElementById("result")
+      .innerText =
       "Start a game first.";
+
     return;
+
   }
 
-  clearInterval(timer);
+
+  if (timer) {
+
+    clearInterval(timer);
+
+    timer = null;
+
+  }
+
+
   playing = false;
 
-  document.getElementById("status").innerText =
+
+  document.getElementById("status")
+    .innerText =
     "You stopped the game!";
 
-  document.getElementById("result").innerText =
-    "🎉 Result: " + multiplier.toFixed(2) + "x";
+
+  document.getElementById("result")
+    .innerText =
+    "🎉 Result: " +
+    multiplier.toFixed(2) +
+    "x";
+
 }
 
+
+/* =========================
+   HOME
+========================= */
+
 function goHome() {
-  window.location.href = "index.html";
+
+  window.location.href =
+    "index.html";
+
 }
+
+
+/* =========================
+   BUTTON CONNECTIONS
+========================= */
+
+document
+  .getElementById("startBtn")
+  .addEventListener(
+    "click",
+    startGame
+  );
+
+
+document
+  .getElementById("cashoutBtn")
+  .addEventListener(
+    "click",
+    cashOut
+  );
+
+
+document
+  .getElementById("homeBtn")
+  .addEventListener(
+    "click",
+    goHome
+  );
+
+
+/* =========================
+   LOAD BALANCE WHEN PAGE OPENS
+========================= */
+
+loadBalance();
 
 </script>
 
