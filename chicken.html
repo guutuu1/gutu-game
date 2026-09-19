@@ -142,105 +142,43 @@ button {
 
 <script>
 /* =========================
-   SUPABASE CONNECTION
-========================= */
-const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-
-let supabaseClient = null;
-
-if (typeof supabase !== "undefined") {
-  document.getElementById("testMessage").innerText = "CDN TEST: Loaded Successfully";
-  document.getElementById("testMessage").style.background = "green";
-  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else {
-  document.getElementById("testMessage").innerText = "CDN TEST: Failed to load Supabase SDK";
-}
-
-/* =========================
    GAME VARIABLES
 ========================= */
 let multiplier = 1.00;
 let timer = null;
 let playing = false;
-let currentBalance = 0;
+let currentBalance = 500.00; // Default starter balance
 let currentBet = 0;
-let currentUser = null;
+
+// Hide JS test banner when code runs successfully
+document.getElementById("testMessage").style.display = "none";
 
 /* =========================
-   LOAD BALANCE (AUTO-SEED FOR NEW PLAYERS)
+   LOAD BALANCE (LOCAL STORAGE DEMO MODE)
 ========================= */
-async function loadBalance() {
-  const balanceElement = document.getElementById("balance");
-  balanceElement.innerText = "Checking...";
-
-  if (!supabaseClient) {
-    balanceElement.innerText = "SDK Error";
-    return;
+function loadBalance() {
+  const savedBalance = localStorage.getItem("chicken_game_balance");
+  
+  if (savedBalance !== null) {
+    currentBalance = Number(savedBalance);
+  } else {
+    currentBalance = 500.00; // Automatically credit 500 ETB for testing
+    localStorage.setItem("chicken_game_balance", currentBalance);
   }
 
-  try {
-    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-
-    if (sessionError || !sessionData?.session) {
-      balanceElement.innerText = "Please sign in";
-      return;
-    }
-
-    currentUser = sessionData.session.user;
-
-    // 1. Try to fetch the user's existing wallet
-    let { data, error } = await supabaseClient
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    // 2. If the user doesn't have a wallet row yet, automatically create one with 100 ETB starter cash!
-    if (!data) {
-      const { data: newWallet, error: createError } = await supabaseClient
-        .from("wallets")
-        .insert([{ user_id: currentUser.id, balance: 100 }])
-        .select()
-        .single();
-
-      if (!createError && newWallet) {
-        data = newWallet;
-      }
-    }
-
-    currentBalance = Number(data?.balance || 0);
-    balanceElement.innerText = currentBalance.toFixed(2);
-
-  } catch (error) {
-    console.error("BALANCE ERROR:", error);
-    balanceElement.innerText = "Error";
-  }
+  document.getElementById("balance").innerText = currentBalance.toFixed(2);
 }
 
-/* =========================
-   UPDATE DB WALLET
-========================= */
-async function updateWalletBalance(newAmount) {
-  if (!currentUser || !supabaseClient) return;
-
-  const { error } = await supabaseClient
-    .from("wallets")
-    .update({ balance: newAmount })
-    .eq("user_id", currentUser.id);
-
-  if (!error) {
-    currentBalance = newAmount;
-    document.getElementById("balance").innerText = currentBalance.toFixed(2);
-  } else {
-    console.error("Wallet update failed:", error);
-  }
+function updateBalance(newAmount) {
+  currentBalance = newAmount;
+  localStorage.setItem("chicken_game_balance", currentBalance);
+  document.getElementById("balance").innerText = currentBalance.toFixed(2);
 }
 
 /* =========================
    START GAME
 ========================= */
-async function startGame() {
+function startGame() {
   if (playing) return;
 
   const betInput = document.getElementById("betAmount");
@@ -252,13 +190,12 @@ async function startGame() {
   }
 
   if (bet > currentBalance) {
-    document.getElementById("result").innerText = "Insufficient balance!";
+    document.getElementById("result").innerText = "Insufficient balance! You have " + currentBalance.toFixed(2) + " ETB";
     return;
   }
 
-  // Save bet & deduct from balance
   currentBet = bet;
-  await updateWalletBalance(currentBalance - currentBet);
+  updateBalance(currentBalance - currentBet);
 
   multiplier = 1.00;
   playing = true;
@@ -271,6 +208,7 @@ async function startGame() {
     multiplier += 0.05;
     document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
 
+    // Random crash chance (~2.5% chance per tick)
     if (Math.random() < 0.025) {
       crashGame();
     }
@@ -292,15 +230,14 @@ function crashGame() {
 }
 
 /* =========================
-   CASH OUT (FIXED)
+   CASH OUT
 ========================= */
-async function cashOut() {
+function cashOut() {
   if (!playing) {
     document.getElementById("result").innerText = "Start a game first.";
     return;
   }
 
-  // Stop the timer immediately
   if (timer) {
     clearInterval(timer);
     timer = null;
@@ -308,24 +245,20 @@ async function cashOut() {
 
   playing = false;
 
-  // Calculate winnings and credit to balance
   const totalPayout = currentBet * multiplier;
-  const updatedBalance = currentBalance + totalPayout;
+  updateBalance(currentBalance + totalPayout);
 
   document.getElementById("status").innerText = "Cashed out!";
   document.getElementById("result").innerText = "🎉 Won " + totalPayout.toFixed(2) + " ETB at " + multiplier.toFixed(2) + "x!";
-
-  // Persist updated balance back to Supabase database
-  await updateWalletBalance(updatedBalance);
 }
 
-/* =========================
-   HOME & EVENT BINDINGS
-========================= */
 function goHome() {
   window.location.href = "index.html";
 }
 
+/* =========================
+   INITIALIZATION
+========================= */
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("cashoutBtn").addEventListener("click", cashOut);
@@ -336,4 +269,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 </body>
-                                    </html>
+  </html>
