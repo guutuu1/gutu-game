@@ -137,35 +137,33 @@ button {
 
 </div>
 
-<!-- SUPABASE SDK -->
+<!-- SUPABASE CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// CDN Check
-if (typeof window.supabase === "undefined") {
-  document.getElementById("testMessage").innerText = "CDN TEST: undefined (Failed to load Supabase)";
-} else {
-  document.getElementById("testMessage").innerText = "CDN TEST: Loaded successfully";
-  document.getElementById("testMessage").style.background = "green";
-}
-
 /* =========================
    SUPABASE CONNECTION
 ========================= */
 const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+
+// Safe CDN check and client initialization
+if (typeof supabase !== "undefined") {
+  document.getElementById("testMessage").innerText = "CDN TEST: Loaded Successfully";
+  document.getElementById("testMessage").style.background = "green";
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  document.getElementById("testMessage").innerText = "CDN TEST: Failed to load Supabase SDK";
+}
 
 /* =========================
-   GAME STATE
+   GAME VARIABLES
 ========================= */
 let multiplier = 1.00;
 let timer = null;
 let playing = false;
-let currentBalance = 0;
-let currentBet = 0;
-let currentUser = null;
 
 /* =========================
    LOAD BALANCE
@@ -174,29 +172,33 @@ async function loadBalance() {
   const balanceElement = document.getElementById("balance");
   balanceElement.innerText = "Checking...";
 
-  try {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (!supabaseClient) {
+    balanceElement.innerText = "SDK Error";
+    return;
+  }
 
-    if (sessionError || !sessionData.session) {
+  try {
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+    if (sessionError || !sessionData?.session) {
       balanceElement.innerText = "Please sign in";
       return;
     }
 
-    currentUser = sessionData.session.user;
+    const user = sessionData.session.user;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from("wallets")
       .select("balance")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (error) {
-      balanceElement.innerText = "Wallet error";
+    if (error || !data) {
+      balanceElement.innerText = "0.00";
       return;
     }
 
-    currentBalance = Number(data?.balance || 0);
-    balanceElement.innerText = currentBalance.toFixed(2);
+    balanceElement.innerText = Number(data.balance || 0).toFixed(2);
 
   } catch (error) {
     console.error("BALANCE ERROR:", error);
@@ -205,46 +207,18 @@ async function loadBalance() {
 }
 
 /* =========================
-   UPDATE BALANCE IN DB
-========================= */
-async function updateWalletBalance(newBalance) {
-  if (!currentUser) return;
-
-  const { error } = await supabase
-    .from("wallets")
-    .update({ balance: newBalance })
-    .eq("user_id", currentUser.id);
-
-  if (error) {
-    console.error("Failed to update wallet:", error);
-  } else {
-    currentBalance = newBalance;
-    document.getElementById("balance").innerText = currentBalance.toFixed(2);
-  }
-}
-
-/* =========================
    START GAME
 ========================= */
-async function startGame() {
+function startGame() {
   if (playing) return;
 
   const betInput = document.getElementById("betAmount");
   const bet = Number(betInput.value);
 
   if (!bet || bet <= 0) {
-    document.getElementById("result").innerText = "Please enter a valid bet amount.";
+    document.getElementById("result").innerText = "Please enter a bet amount.";
     return;
   }
-
-  if (bet > currentBalance) {
-    document.getElementById("result").innerText = "Insufficient balance!";
-    return;
-  }
-
-  // Deduct bet amount
-  currentBet = bet;
-  await updateWalletBalance(currentBalance - currentBet);
 
   multiplier = 1.00;
   playing = true;
@@ -257,7 +231,6 @@ async function startGame() {
     multiplier += 0.05;
     document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
 
-    // Random crash check (~2.5% chance per tick)
     if (Math.random() < 0.025) {
       crashGame();
     }
@@ -274,15 +247,14 @@ function crashGame() {
   }
 
   playing = false;
-
-  document.getElementById("status").innerText = "The chicken crashed!";
-  document.getElementById("result").innerText = "💥 Game crashed at " + multiplier.toFixed(2) + "x. You lost " + currentBet.toFixed(2) + " ETB.";
+  document.getElementById("status").innerText = "The chicken stopped!";
+  document.getElementById("result").innerText = "💥 Game ended at " + multiplier.toFixed(2) + "x";
 }
 
 /* =========================
    CASH OUT
 ========================= */
-async function cashOut() {
+function cashOut() {
   if (!playing) {
     document.getElementById("result").innerText = "Start a game first.";
     return;
@@ -294,23 +266,20 @@ async function cashOut() {
   }
 
   playing = false;
-
-  const winnings = currentBet * multiplier;
-  const newBalance = currentBalance + winnings;
-
-  await updateWalletBalance(newBalance);
-
-  document.getElementById("status").innerText = "Cashed out successfully!";
-  document.getElementById("result").innerText = "🎉 Won " + winnings.toFixed(2) + " ETB at " + multiplier.toFixed(2) + "x!";
+  document.getElementById("status").innerText = "You stopped the game!";
+  document.getElementById("result").innerText = "🎉 Result: " + multiplier.toFixed(2) + "x";
 }
 
 /* =========================
-   NAVIGATION & INITIALIZATION
+   HOME
 ========================= */
 function goHome() {
   window.location.href = "index.html";
 }
 
+/* =========================
+   INITIALIZE EVENT LISTENERS
+========================= */
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("cashoutBtn").addEventListener("click", cashOut);
@@ -321,4 +290,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 </body>
-  </html>
+</html>
