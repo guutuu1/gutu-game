@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chicken Game</title>
+<title>Gutu Chicken Game</title>
 
 <style>
 * {
@@ -14,110 +14,105 @@
 }
 
 body {
-  background: #10131a;
+  background: #0b1020;
   color: white;
   text-align: center;
+  min-height: 100vh;
 }
 
 header {
-  background: #171b24;
-  padding: 18px;
-  font-size: 23px;
+  background: #121a2e;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #26314d;
+}
+
+.logo {
+  font-size: 22px;
   font-weight: bold;
 }
 
-#balanceBox {
-  background: #252c3b;
-  padding: 15px;
-  margin: 20px 15px;
-  border-radius: 12px;
-  font-size: 20px;
+.balance-box {
+  background: #1d2945;
+  padding: 8px 16px;
+  border-radius: 20px;
   font-weight: bold;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  font-size: 16px;
+}
+
+.container {
+  max-width: 450px;
+  margin: 20px auto;
+  padding: 15px;
 }
 
 .game-box {
-  margin: 25px 15px;
-  padding: 25px 15px;
-  background: #1b202b;
-  border-radius: 15px;
+  background: #121a2e;
+  border: 1px solid #26314d;
+  border-radius: 20px;
+  padding: 25px 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
 }
 
 .chicken {
-  font-size: 90px;
-  margin: 25px 0;
+  font-size: 80px;
+  margin: 15px 0;
 }
 
 .multiplier {
-  font-size: 38px;
+  font-size: 42px;
   font-weight: bold;
-  margin: 20px;
+  color: #20c878;
+  margin: 15px 0;
 }
 
 .status {
-  color: #aeb4c0;
+  color: #9ca8c2;
+  font-size: 15px;
   margin-bottom: 20px;
 }
 
-input, select {
-  width: 90%;
-  max-width: 350px;
-  padding: 15px;
-  border-radius: 9px;
-  border: none;
-  font-size: 17px;
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #26314d;
+  background: #0b1020;
+  color: white;
+  font-size: 16px;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  outline: none;
 }
 
 button {
-  width: 90%;
-  max-width: 350px;
+  width: 100%;
   padding: 15px;
   border: none;
-  border-radius: 9px;
-  margin: 7px;
-  font-size: 17px;
+  border-radius: 12px;
+  font-size: 18px;
   font-weight: bold;
   cursor: pointer;
+  margin-bottom: 10px;
+  transition: opacity 0.2s;
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-.start { background: #f5b400; color: #111; }
-.cashout { background: #25b864; color: white; }
-.withdraw-btn { background: #007bff; color: white; padding: 10px 20px; font-size: 15px; width: auto; }
-.back { background: #333946; color: white; }
+.start-btn { background: #f5b400; color: #111; }
+.cashout-btn { background: #20c878; color: white; }
+.logout-btn { background: #252c3b; color: #9ca8c2; font-size: 14px; padding: 10px; margin-top: 15px; }
 
 .result {
-  margin-top: 20px;
-  font-size: 18px;
-  min-height: 25px;
-}
-
-/* Modal Overlay */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background: #1b202b;
-  padding: 25px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 400px;
+  margin-top: 15px;
+  font-size: 16px;
+  min-height: 24px;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -125,188 +120,174 @@ button:disabled {
 <body>
 
 <header>
-  🐔 Chicken Game
+  <div class="logo">🐔 Gutu Game</div>
+  <div class="balance-box">💰 <span id="balance">0.00</span> ETB</div>
 </header>
 
-<div id="balanceBox">
-  <div>💰 Balance: <span id="balance">Loading...</span> ETB</div>
-  <button class="withdraw-btn" id="openWithdrawModal">💸 Withdraw Funds</button>
-</div>
+<div class="container">
+  <div class="game-box">
+    <div class="chicken">🐔</div>
+    <div class="multiplier" id="multiplier">1.00x</div>
+    <div class="status" id="status">Enter bet and press START</div>
 
-<div class="game-box">
-  <div class="chicken">🐔</div>
-  <div class="multiplier" id="multiplier">1.00x</div>
-  <div class="status" id="status">Press START to begin</div>
+    <input type="number" id="betAmount" placeholder="Bet Amount (ETB)" min="1" step="1" value="10">
 
-  <div style="margin: 15px 0;">
-    <input type="number" id="betAmount" placeholder="Enter bet amount" min="1" step="1">
-  </div>
+    <button class="start-btn" id="startBtn">START GAME</button>
+    <button class="cashout-btn" id="cashoutBtn" disabled>CASH OUT</button>
 
-  <button class="start" id="startBtn">START GAME</button>
-  <button class="cashout" id="cashoutBtn">CASH OUT</button>
-  <button class="back" id="homeBtn">← HOME</button>
-
-  <div class="result" id="result"></div>
-</div>
-
-<!-- WITHDRAWAL MODAL -->
-<div class="modal" id="withdrawModal">
-  <div class="modal-content">
-    <h3>Withdraw Funds</h3>
-    <br>
-    <select id="withdrawMethod">
-      <option value="Telebirr">Telebirr</option>
-      <option value="CBE Birr">CBE Birr</option>
-      <option value="Bank Transfer">Bank Transfer</option>
-    </select>
-    <br>
-    <input type="text" id="withdrawAccount" placeholder="Phone or Account Number">
-    <br>
-    <input type="number" id="withdrawAmount" placeholder="Amount (ETB)" min="10">
-    <br>
-    <button class="cashout" id="submitWithdraw">Confirm Request</button>
-    <button class="back" id="closeWithdrawModal">Cancel</button>
+    <div class="result" id="result"></div>
+    <button class="logout-btn" id="logoutBtn">Log Out</button>
   </div>
 </div>
+
+<!-- SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-let multiplier = 1.00;
-let timer = null;
-let playing = false;
-let currentBalance = 500.00;
-let currentBet = 0;
+const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+const SUPABASE_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-function loadBalance() {
-  const savedBalance = localStorage.getItem("chicken_game_balance");
-  if (savedBalance !== null && !isNaN(Number(savedBalance))) {
-    currentBalance = Number(savedBalance);
-  } else {
-    currentBalance = 500.00;
-    localStorage.setItem("chicken_game_balance", currentBalance);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentBetId = null;
+let currentCrashMultiplier = 1.00;
+let currentMultiplier = 1.00;
+let gameTimer = null;
+let isPlaying = false;
+
+// Load user balance from profiles table
+async function loadBalance() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  if (!session) {
+    window.location.href = "index.html";
+    return;
   }
-  document.getElementById("balance").innerText = currentBalance.toFixed(2);
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("balance")
+    .eq("id", session.user.id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching balance:", error.message);
+  } else if (data) {
+    document.getElementById("balance").innerText = Number(data.balance).toFixed(2);
+  }
 }
 
-function updateBalance(newAmount) {
-  currentBalance = newAmount;
-  localStorage.setItem("chicken_game_balance", currentBalance);
-  document.getElementById("balance").innerText = currentBalance.toFixed(2);
-}
-
-function startGame() {
-  if (playing) return;
+// Start Game using Server RPC
+async function startGame() {
+  if (isPlaying) return;
 
   const betInput = document.getElementById("betAmount");
   const bet = Number(betInput.value);
+  const resultDiv = document.getElementById("result");
 
   if (!bet || bet <= 0) {
-    document.getElementById("result").innerText = "Please enter a valid bet amount.";
+    resultDiv.innerText = "Please enter a valid bet amount.";
     return;
   }
 
-  if (bet > currentBalance) {
-    document.getElementById("result").innerText = "Insufficient balance! You have " + currentBalance.toFixed(2) + " ETB";
-    return;
-  }
-
-  currentBet = bet;
-  updateBalance(currentBalance - currentBet);
-
-  multiplier = 1.00;
-  playing = true;
-
+  resultDiv.innerText = "Placing bet on server...";
   document.getElementById("startBtn").disabled = true;
-  document.getElementById("cashoutBtn").disabled = false;
-  document.getElementById("multiplier").innerText = "1.00x";
-  document.getElementById("result").innerText = "";
-  document.getElementById("status").innerText = "Game running...";
 
-  timer = setInterval(function() {
-    multiplier += 0.05;
-    document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
+  // Call secure Postgres RPC
+  const { data, error } = await supabaseClient.rpc("place_bet", { bet_amount: bet });
 
-    if (Math.random() < 0.03) {
-      crashGame();
+  if (error) {
+    resultDiv.innerText = "❌ " + error.message;
+    document.getElementById("startBtn").disabled = false;
+    return;
+  }
+
+  if (data && data.success) {
+    currentBetId = data.bet_id;
+    currentCrashMultiplier = data.crash_multiplier;
+    document.getElementById("balance").innerText = Number(data.new_balance).toFixed(2);
+
+    isPlaying = true;
+    currentMultiplier = 1.00;
+    document.getElementById("cashoutBtn").disabled = false;
+    document.getElementById("status").innerText = "Game running...";
+    resultDiv.innerText = "";
+
+    // Start game tick animation
+    gameTimer = setInterval(function() {
+      currentMultiplier += 0.03;
+      document.getElementById("multiplier").innerText = currentMultiplier.toFixed(2) + "x";
+
+      // Check if crashed
+      if (currentMultiplier >= currentCrashMultiplier) {
+        handleCrash();
+      }
+    }, 150);
+  }
+}
+
+// Handle Crash Event
+function handleCrash() {
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  isPlaying = false;
+
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("cashoutBtn").disabled = true;
+  document.getElementById("status").innerText = "💥 CRASHED!";
+  document.getElementById("result").innerText = "Game crashed at " + currentCrashMultiplier.toFixed(2) + "x";
+}
+
+// Cash Out using Server RPC
+async function cashOut() {
+  if (!isPlaying || !currentBetId) return;
+
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  isPlaying = false;
+
+  document.getElementById("cashoutBtn").disabled = true;
+  document.getElementById("status").innerText = "Cashing out...";
+
+  const cashedMultiplier = Number(currentMultiplier.toFixed(2));
+
+  // Call secure Postgres RPC
+  const { data, error } = await supabaseClient.rpc("cash_out", {
+    p_bet_id: currentBetId,
+    cashed_multiplier: cashedMultiplier
+  });
+
+  document.getElementById("startBtn").disabled = false;
+
+  if (error) {
+    document.getElementById("result").innerText = "❌ " + error.message;
+    return;
+  }
+
+  if (data && data.success) {
+    document.getElementById("balance").innerText = Number(data.new_balance).toFixed(2);
+    document.getElementById("status").innerText = "🎉 Cashed Out!";
+    document.getElementById("result").innerText = "Won " + Number(data.payout).toFixed(2) + " ETB at " + cashedMultiplier + "x!";
+  } else {
+    document.getElementById("status").innerText = "💥 Crashed!";
+    document.getElementById("result").innerText = data.message || "Crashed before cashout.";
+    if (data.new_balance !== undefined) {
+      document.getElementById("balance").innerText = Number(data.new_balance).toFixed(2);
     }
-  }, 250);
+  }
 }
 
-function crashGame() {
-  if (timer) { clearInterval(timer); timer = null; }
-  playing = false;
-  document.getElementById("startBtn").disabled = false;
-  document.getElementById("cashoutBtn").disabled = true;
-  document.getElementById("status").innerText = "The chicken crashed!";
-  document.getElementById("result").innerText = "💥 Game crashed at " + multiplier.toFixed(2) + "x. You lost " + currentBet.toFixed(2) + " ETB.";
-}
-
-function cashOut() {
-  if (!playing) return;
-  if (timer) { clearInterval(timer); timer = null; }
-  playing = false;
-
-  document.getElementById("startBtn").disabled = false;
-  document.getElementById("cashoutBtn").disabled = true;
-
-  const totalPayout = currentBet * multiplier;
-  updateBalance(currentBalance + totalPayout);
-
-  document.getElementById("status").innerText = "Cashed out!";
-  document.getElementById("result").innerText = "🎉 Won " + totalPayout.toFixed(2) + " ETB at " + multiplier.toFixed(2) + "x!";
-}
-
-/* =========================
-   WITHDRAWAL SYSTEM
-========================= */
-function handleWithdraw() {
-  const method = document.getElementById("withdrawMethod").value;
-  const account = document.getElementById("withdrawAccount").value.trim();
-  const amount = Number(document.getElementById("withdrawAmount").value);
-
-  if (!account) {
-    alert("Please enter a valid account or phone number.");
-    return;
-  }
-
-  if (!amount || amount <= 0) {
-    alert("Please enter a valid withdrawal amount.");
-    return;
-  }
-
-  if (amount > currentBalance) {
-    alert("Insufficient balance for this withdrawal.");
-    return;
-  }
-
-  // Deduct balance immediately
-  updateBalance(currentBalance - amount);
-
-  alert(`Withdrawal request submitted successfully!\n\nAmount: ${amount.toFixed(2)} ETB\nMethod: ${method}\nAccount: ${account}`);
-
-  // Reset & close modal
-  document.getElementById("withdrawAccount").value = "";
-  document.getElementById("withdrawAmount").value = "";
-  document.getElementById("withdrawModal").style.display = "none";
+// Log Out
+async function logOut() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "index.html";
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+  loadBalance();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("cashoutBtn").addEventListener("click", cashOut);
-  document.getElementById("homeBtn").addEventListener("click", function() { window.location.href = "index.html"; });
-
-  // Modal Controls
-  document.getElementById("openWithdrawModal").addEventListener("click", function() {
-    document.getElementById("withdrawModal").style.display = "flex";
-  });
-  document.getElementById("closeWithdrawModal").addEventListener("click", function() {
-    document.getElementById("withdrawModal").style.display = "none";
-  });
-  document.getElementById("submitWithdraw").addEventListener("click", handleWithdraw);
-
-  document.getElementById("cashoutBtn").disabled = true;
-  loadBalance();
+  document.getElementById("logoutBtn").addEventListener("click", logOut);
 });
 </script>
 
 </body>
-</html>
+  </html>
