@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Chicken Game</title>
 
 <style>
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -102,481 +100,224 @@ button {
   font-size: 18px;
   min-height: 25px;
 }
-
 </style>
 </head>
 
 <body>
 
 <header>
-🐔 Chicken Game
+  🐔 Chicken Game
 </header>
 
-<div id="testMessage" style="
-  background:red;
-  color:white;
-  padding:15px;
-  margin:10px;
-  font-size:20px;
-">
-JAVASCRIPT TEST
+<div id="testMessage" style="background:red; color:white; padding:15px; margin:10px; font-size:20px;">
+  JAVASCRIPT TEST
 </div>
 
 <div id="balanceBox">
-  💰 Balance:
-  <span id="balance">Loading...</span>
-  ETB
+  💰 Balance: <span id="balance">Loading...</span> ETB
 </div>
 
 <div class="game-box">
 
-  <div class="chicken">
-    🐔
-  </div>
+  <div class="chicken">🐔</div>
 
-  <div class="multiplier" id="multiplier">
-    1.00x
-  </div>
+  <div class="multiplier" id="multiplier">1.00x</div>
 
-  <div class="status" id="status">
-    Press START to begin
-  </div>
+  <div class="status" id="status">Press START to begin</div>
 
   <div style="margin: 15px 0;">
-
-    <input
-      type="number"
-      id="betAmount"
-      placeholder="Enter bet amount"
-      min="1"
-      step="1"
-    >
-
+    <input type="number" id="betAmount" placeholder="Enter bet amount" min="1" step="1">
   </div>
 
-  <button class="start" id="startBtn">
-    START GAME
-  </button>
-
-  <button class="cashout" id="cashoutBtn">
-    CASH OUT
-  </button>
-
-  <button class="back" id="homeBtn">
-    ← HOME
-  </button>
+  <button class="start" id="startBtn">START GAME</button>
+  <button class="cashout" id="cashoutBtn">CASH OUT</button>
+  <button class="back" id="homeBtn">← HOME</button>
 
   <div class="result" id="result"></div>
 
 </div>
 
-
-<!-- SUPABASE -->
-
+<!-- SUPABASE SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-
-<!-- CDN TEST -->
-
 <script>
-
+// CDN Check
 if (typeof window.supabase === "undefined") {
-
-  document.getElementById("testMessage").innerText =
-    "CDN TEST: undefined";
-
+  document.getElementById("testMessage").innerText = "CDN TEST: undefined (Failed to load Supabase)";
 } else {
-
-  document.getElementById("testMessage").innerText =
-    "CDN TEST: object";
-
+  document.getElementById("testMessage").innerText = "CDN TEST: Loaded successfully";
+  document.getElementById("testMessage").style.background = "green";
 }
-
-</script>
-
-
-<script>
 
 /* =========================
    SUPABASE CONNECTION
 ========================= */
+const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-const SUPABASE_URL =
-  "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
-
-const SUPABASE_ANON_KEY =
-  "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-
-const supabase =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
-
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* =========================
-   GAME VARIABLES
+   GAME STATE
 ========================= */
-
 let multiplier = 1.00;
-
 let timer = null;
-
 let playing = false;
-
+let currentBalance = 0;
+let currentBet = 0;
+let currentUser = null;
 
 /* =========================
    LOAD BALANCE
 ========================= */
-
 async function loadBalance() {
-
-  const balanceElement =
-    document.getElementById("balance");
-
+  const balanceElement = document.getElementById("balance");
   balanceElement.innerText = "Checking...";
 
   try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-    console.log("1. Checking Supabase session...");
-
-    const {
-      data: sessionData,
-      error: sessionError
-    } = await supabase.auth.getSession();
-
-
-    if (sessionError) {
-
-      console.error(
-        "SESSION ERROR:",
-        sessionError
-      );
-
-      balanceElement.innerText =
-        "Session error";
-
+    if (sessionError || !sessionData.session) {
+      balanceElement.innerText = "Please sign in";
       return;
     }
 
+    currentUser = sessionData.session.user;
 
-    const session =
-      sessionData.session;
-
-
-    if (!session) {
-
-      console.log("NO USER SESSION");
-
-      balanceElement.innerText =
-        "Please sign in";
-
-      return;
-    }
-
-
-    const user =
-      session.user;
-
-
-    console.log(
-      "2. User ID:",
-      user.id
-    );
-
-
-    console.log(
-      "3. Loading wallet..."
-    );
-
-
-    const {
-      data,
-      error
-    } = await supabase
+    const { data, error } = await supabase
       .from("wallets")
       .select("balance")
-      .eq("user_id", user.id)
+      .eq("user_id", currentUser.id)
       .maybeSingle();
 
-
     if (error) {
-
-      console.error(
-        "WALLET ERROR:",
-        error
-      );
-
-      balanceElement.innerText =
-        "Wallet error";
-
+      balanceElement.innerText = "Wallet error";
       return;
     }
 
+    currentBalance = Number(data?.balance || 0);
+    balanceElement.innerText = currentBalance.toFixed(2);
 
-    console.log(
-      "4. Wallet data:",
-      data
-    );
-
-
-    if (!data) {
-
-      console.log(
-        "NO WALLET ROW FOUND"
-      );
-
-      balanceElement.innerText =
-        "0.00";
-
-      return;
-    }
-
-
-    balanceElement.innerText =
-      Number(
-        data.balance || 0
-      ).toFixed(2);
-
-
-    console.log(
-      "5. BALANCE:",
-      data.balance
-    );
-
+  } catch (error) {
+    console.error("BALANCE ERROR:", error);
+    balanceElement.innerText = "Error";
   }
-
-  catch (error) {
-
-    console.error(
-      "BALANCE ERROR:",
-      error
-    );
-
-    balanceElement.innerText =
-      "Error";
-
-  }
-
 }
 
+/* =========================
+   UPDATE BALANCE IN DB
+========================= */
+async function updateWalletBalance(newBalance) {
+  if (!currentUser) return;
+
+  const { error } = await supabase
+    .from("wallets")
+    .update({ balance: newBalance })
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    console.error("Failed to update wallet:", error);
+  } else {
+    currentBalance = newBalance;
+    document.getElementById("balance").innerText = currentBalance.toFixed(2);
+  }
+}
 
 /* =========================
    START GAME
 ========================= */
+async function startGame() {
+  if (playing) return;
 
-function startGame() {
-
-  if (playing) {
-    return;
-  }
-
-
-  const betInput =
-    document.getElementById(
-      "betAmount"
-    );
-
-
-  const bet =
-    Number(
-      betInput.value
-    );
-
+  const betInput = document.getElementById("betAmount");
+  const bet = Number(betInput.value);
 
   if (!bet || bet <= 0) {
-
-    document.getElementById(
-      "result"
-    ).innerText =
-      "Please enter a bet amount.";
-
+    document.getElementById("result").innerText = "Please enter a valid bet amount.";
     return;
   }
 
+  if (bet > currentBalance) {
+    document.getElementById("result").innerText = "Insufficient balance!";
+    return;
+  }
+
+  // Deduct bet amount
+  currentBet = bet;
+  await updateWalletBalance(currentBalance - currentBet);
 
   multiplier = 1.00;
-
   playing = true;
 
+  document.getElementById("multiplier").innerText = "1.00x";
+  document.getElementById("result").innerText = "";
+  document.getElementById("status").innerText = "Game running...";
 
-  document.getElementById(
-    "multiplier"
-  ).innerText =
-    "1.00x";
+  timer = setInterval(function() {
+    multiplier += 0.05;
+    document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
 
-
-  document.getElementById(
-    "result"
-  ).innerText =
-    "";
-
-
-  document.getElementById(
-    "status"
-  ).innerText =
-    "Game running...";
-
-
-  timer =
-    setInterval(
-      function() {
-
-        multiplier += 0.05;
-
-
-        document.getElementById(
-          "multiplier"
-        ).innerText =
-          multiplier.toFixed(2) +
-          "x";
-
-
-        /*
-          Temporary random crash
-        */
-
-        if (
-          Math.random() < 0.025
-        ) {
-
-          crashGame();
-
-        }
-
-      },
-      300
-    );
-
+    // Random crash check (~2.5% chance per tick)
+    if (Math.random() < 0.025) {
+      crashGame();
+    }
+  }, 300);
 }
-
 
 /* =========================
    CRASH GAME
 ========================= */
-
 function crashGame() {
-
   if (timer) {
-
     clearInterval(timer);
-
     timer = null;
-
   }
-
 
   playing = false;
 
-
-  document.getElementById(
-    "status"
-  ).innerText =
-    "The chicken stopped!";
-
-
-  document.getElementById(
-    "result"
-  ).innerText =
-    "💥 Game ended at " +
-    multiplier.toFixed(2) +
-    "x";
-
+  document.getElementById("status").innerText = "The chicken crashed!";
+  document.getElementById("result").innerText = "💥 Game crashed at " + multiplier.toFixed(2) + "x. You lost " + currentBet.toFixed(2) + " ETB.";
 }
-
 
 /* =========================
    CASH OUT
 ========================= */
-
-function cashOut() {
-
+async function cashOut() {
   if (!playing) {
-
-    document.getElementById(
-      "result"
-    ).innerText =
-      "Start a game first.";
-
+    document.getElementById("result").innerText = "Start a game first.";
     return;
-
   }
-
 
   if (timer) {
-
     clearInterval(timer);
-
     timer = null;
-
   }
-
 
   playing = false;
 
+  const winnings = currentBet * multiplier;
+  const newBalance = currentBalance + winnings;
 
-  document.getElementById(
-    "status"
-  ).innerText =
-    "You stopped the game!";
+  await updateWalletBalance(newBalance);
 
-
-  document.getElementById(
-    "result"
-  ).innerText =
-    "🎉 Result: " +
-    multiplier.toFixed(2) +
-    "x";
-
+  document.getElementById("status").innerText = "Cashed out successfully!";
+  document.getElementById("result").innerText = "🎉 Won " + winnings.toFixed(2) + " ETB at " + multiplier.toFixed(2) + "x!";
 }
 
-
 /* =========================
-   HOME
+   NAVIGATION & INITIALIZATION
 ========================= */
-
 function goHome() {
-
-  window.location.href =
-    "index.html";
-
+  window.location.href = "index.html";
 }
 
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("cashoutBtn").addEventListener("click", cashOut);
+  document.getElementById("homeBtn").addEventListener("click", goHome);
 
-/* =========================
-   BUTTON CONNECTIONS
-========================= */
-
-document
-  .getElementById("startBtn")
-  .addEventListener(
-    "click",
-    startGame
-  );
-
-
-document
-  .getElementById("cashoutBtn")
-  .addEventListener(
-    "click",
-    cashOut
-  );
-
-
-document
-  .getElementById("homeBtn")
-  .addEventListener(
-    "click",
-    goHome
-  );
-
-
-/* =========================
-   LOAD BALANCE
-========================= */
-
-loadBalance();
-
+  loadBalance();
+});
 </script>
 
 </body>
