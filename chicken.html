@@ -192,7 +192,9 @@ let playing = false;
     Number(data.balance).toFixed(2);
 }
 
-loadBalance();
+loadBalance().catch(function(error) {
+  console.error("Balance error:", error);
+});
 
 function startGame() {
 
