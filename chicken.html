@@ -175,9 +175,11 @@ JAVASCRIPT TEST
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+
 <!-- CDN TEST -->
 
 <script>
+
 if (typeof window.supabase === "undefined") {
 
   document.getElementById("testMessage").innerText =
@@ -189,6 +191,7 @@ if (typeof window.supabase === "undefined") {
     "CDN TEST: object";
 
 }
+
 </script>
 
 
@@ -242,16 +245,24 @@ async function loadBalance() {
       error: sessionError
     } = await supabase.auth.getSession();
 
+
     if (sessionError) {
 
-      console.error("SESSION ERROR:", sessionError);
+      console.error(
+        "SESSION ERROR:",
+        sessionError
+      );
 
-      balanceElement.innerText = "Session error";
+      balanceElement.innerText =
+        "Session error";
 
       return;
     }
 
-    const session = sessionData.session;
+
+    const session =
+      sessionData.session;
+
 
     if (!session) {
 
@@ -263,11 +274,21 @@ async function loadBalance() {
       return;
     }
 
-    const user = session.user;
 
-    console.log("2. User ID:", user.id);
+    const user =
+      session.user;
 
-    console.log("3. Loading wallet...");
+
+    console.log(
+      "2. User ID:",
+      user.id
+    );
+
+
+    console.log(
+      "3. Loading wallet..."
+    );
+
 
     const {
       data,
@@ -278,9 +299,13 @@ async function loadBalance() {
       .eq("user_id", user.id)
       .maybeSingle();
 
+
     if (error) {
 
-      console.error("WALLET ERROR:", error);
+      console.error(
+        "WALLET ERROR:",
+        error
+      );
 
       balanceElement.innerText =
         "Wallet error";
@@ -288,11 +313,18 @@ async function loadBalance() {
       return;
     }
 
-    console.log("4. Wallet data:", data);
+
+    console.log(
+      "4. Wallet data:",
+      data
+    );
+
 
     if (!data) {
 
-      console.log("NO WALLET ROW FOUND");
+      console.log(
+        "NO WALLET ROW FOUND"
+      );
 
       balanceElement.innerText =
         "0.00";
@@ -300,8 +332,12 @@ async function loadBalance() {
       return;
     }
 
+
     balanceElement.innerText =
-      Number(data.balance || 0).toFixed(2);
+      Number(
+        data.balance || 0
+      ).toFixed(2);
+
 
     console.log(
       "5. BALANCE:",
@@ -322,108 +358,8 @@ async function loadBalance() {
 
   }
 
-      }
-/* =========================
-   LOAD BALANCE
-========================= */
+}
 
-async function loadBalance() {
-
-  const balanceElement =
-    document.getElementById("balance");
-
-  balanceElement.innerText = "Checking...";
-
-  try {
-
-    console.log("1. Checking Supabase session...");
-
-    const {
-      data: sessionData,
-      error: sessionError
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-
-      console.error("SESSION ERROR:", sessionError);
-
-      balanceElement.innerText = "Session error";
-
-      return;
-    }
-
-    const session = sessionData.session;
-
-    if (!session) {
-
-      console.log("NO USER SESSION");
-
-      balanceElement.innerText =
-        "Please sign in";
-
-      return;
-    }
-
-    const user = session.user;
-
-    console.log("2. User ID:", user.id);
-
-    console.log("3. Loading wallet...");
-
-    const {
-      data,
-      error
-    } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error) {
-
-      console.error("WALLET ERROR:", error);
-
-      balanceElement.innerText =
-        "Wallet error";
-
-      return;
-    }
-
-    console.log("4. Wallet data:", data);
-
-    if (!data) {
-
-      console.log("NO WALLET ROW FOUND");
-
-      balanceElement.innerText =
-        "0.00";
-
-      return;
-    }
-
-    balanceElement.innerText =
-      Number(data.balance || 0).toFixed(2);
-
-    console.log(
-      "5. BALANCE:",
-      data.balance
-    );
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "BALANCE ERROR:",
-      error
-    );
-
-    balanceElement.innerText =
-      "Error";
-
-  }
-
-  }
 
 /* =========================
    START GAME
@@ -435,54 +371,82 @@ function startGame() {
     return;
   }
 
+
   const betInput =
-    document.getElementById("betAmount");
+    document.getElementById(
+      "betAmount"
+    );
+
 
   const bet =
-    Number(betInput.value);
+    Number(
+      betInput.value
+    );
+
 
   if (!bet || bet <= 0) {
 
-    document.getElementById("result")
-      .innerText =
+    document.getElementById(
+      "result"
+    ).innerText =
       "Please enter a bet amount.";
 
     return;
   }
 
+
   multiplier = 1.00;
 
   playing = true;
 
-  document.getElementById("multiplier")
-    .innerText = "1.00x";
 
-  document.getElementById("result")
-    .innerText = "";
+  document.getElementById(
+    "multiplier"
+  ).innerText =
+    "1.00x";
 
-  document.getElementById("status")
-    .innerText =
+
+  document.getElementById(
+    "result"
+  ).innerText =
+    "";
+
+
+  document.getElementById(
+    "status"
+  ).innerText =
     "Game running...";
 
-  timer = setInterval(function() {
 
-    multiplier += 0.05;
+  timer =
+    setInterval(
+      function() {
 
-    document.getElementById("multiplier")
-      .innerText =
-      multiplier.toFixed(2) + "x";
+        multiplier += 0.05;
 
-    /*
-      Temporary random crash
-    */
 
-    if (Math.random() < 0.025) {
+        document.getElementById(
+          "multiplier"
+        ).innerText =
+          multiplier.toFixed(2) +
+          "x";
 
-      crashGame();
 
-    }
+        /*
+          Temporary random crash
+        */
 
-  }, 300);
+        if (
+          Math.random() < 0.025
+        ) {
+
+          crashGame();
+
+        }
+
+      },
+      300
+    );
 
 }
 
@@ -501,14 +465,19 @@ function crashGame() {
 
   }
 
+
   playing = false;
 
-  document.getElementById("status")
-    .innerText =
+
+  document.getElementById(
+    "status"
+  ).innerText =
     "The chicken stopped!";
 
-  document.getElementById("result")
-    .innerText =
+
+  document.getElementById(
+    "result"
+  ).innerText =
     "💥 Game ended at " +
     multiplier.toFixed(2) +
     "x";
@@ -524,13 +493,15 @@ function cashOut() {
 
   if (!playing) {
 
-    document.getElementById("result")
-      .innerText =
+    document.getElementById(
+      "result"
+    ).innerText =
       "Start a game first.";
 
     return;
 
   }
+
 
   if (timer) {
 
@@ -540,14 +511,19 @@ function cashOut() {
 
   }
 
+
   playing = false;
 
-  document.getElementById("status")
-    .innerText =
+
+  document.getElementById(
+    "status"
+  ).innerText =
     "You stopped the game!";
 
-  document.getElementById("result")
-    .innerText =
+
+  document.getElementById(
+    "result"
+  ).innerText =
     "🎉 Result: " +
     multiplier.toFixed(2) +
     "x";
@@ -578,12 +554,14 @@ document
     startGame
   );
 
+
 document
   .getElementById("cashoutBtn")
   .addEventListener(
     "click",
     cashOut
   );
+
 
 document
   .getElementById("homeBtn")
@@ -594,7 +572,7 @@ document
 
 
 /* =========================
-   LOAD BALANCE WHEN PAGE OPENS
+   LOAD BALANCE
 ========================= */
 
 loadBalance();
@@ -602,4 +580,4 @@ loadBalance();
 </script>
 
 </body>
-</html>
+  </html>
