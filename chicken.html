@@ -107,7 +107,12 @@ button {
 </head>
 
 <body>
-  <div id="testMessage" style="
+
+<header>
+🐔 Chicken Game
+</header>
+
+<div id="testMessage" style="
   background:red;
   color:white;
   padding:15px;
@@ -115,20 +120,7 @@ button {
   font-size:20px;
 ">
 JAVASCRIPT TEST
-  </div>
-  <script>
-if (typeof window.supabase === "undefined") {
-  document.getElementById("testMessage").innerText =
-    "JAVASCRIPT WORKS — SUPABASE NOT LOADED";
-} else {
-  document.getElementById("testMessage").innerText =
-    "JAVASCRIPT WORKS — SUPABASE LOADED";
-}
-  </script>
-
-<header>
-🐔 Chicken Game
-</header>
+</div>
 
 <div id="balanceBox">
   💰 Balance:
@@ -183,6 +175,24 @@ if (typeof window.supabase === "undefined") {
 
 <script src="https://unpkg.com/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
 
+
+<!-- CDN TEST -->
+
+<script>
+if (typeof window.supabase === "undefined") {
+
+  document.getElementById("testMessage").innerText =
+    "CDN TEST: undefined";
+
+} else {
+
+  document.getElementById("testMessage").innerText =
+    "CDN TEST: object";
+
+}
+</script>
+
+
 <script>
 
 /* =========================
@@ -230,6 +240,7 @@ async function loadBalance() {
     } = await supabase.auth.getUser();
 
     if (userError) {
+
       console.error(userError);
 
       balanceElement.innerText =
@@ -246,7 +257,6 @@ async function loadBalance() {
       return;
     }
 
-
     const {
       data,
       error
@@ -255,7 +265,6 @@ async function loadBalance() {
       .select("balance")
       .eq("user_id", user.id)
       .maybeSingle();
-
 
     if (error) {
 
@@ -270,7 +279,6 @@ async function loadBalance() {
       return;
     }
 
-
     if (!data) {
 
       balanceElement.innerText =
@@ -278,7 +286,6 @@ async function loadBalance() {
 
       return;
     }
-
 
     balanceElement.innerText =
       Number(data.balance || 0)
@@ -311,13 +318,11 @@ function startGame() {
     return;
   }
 
-
   const betInput =
     document.getElementById("betAmount");
 
   const bet =
     Number(betInput.value);
-
 
   if (!bet || bet <= 0) {
 
@@ -328,34 +333,27 @@ function startGame() {
     return;
   }
 
-
   multiplier = 1.00;
 
   playing = true;
 
-
   document.getElementById("multiplier")
     .innerText = "1.00x";
 
-
   document.getElementById("result")
     .innerText = "";
-
 
   document.getElementById("status")
     .innerText =
     "Game running...";
 
-
   timer = setInterval(function() {
 
     multiplier += 0.05;
 
-
     document.getElementById("multiplier")
       .innerText =
       multiplier.toFixed(2) + "x";
-
 
     /*
       Temporary random crash
@@ -386,14 +384,11 @@ function crashGame() {
 
   }
 
-
   playing = false;
-
 
   document.getElementById("status")
     .innerText =
     "The chicken stopped!";
-
 
   document.getElementById("result")
     .innerText =
@@ -420,7 +415,6 @@ function cashOut() {
 
   }
 
-
   if (timer) {
 
     clearInterval(timer);
@@ -429,14 +423,11 @@ function cashOut() {
 
   }
 
-
   playing = false;
-
 
   document.getElementById("status")
     .innerText =
     "You stopped the game!";
-
 
   document.getElementById("result")
     .innerText =
@@ -470,14 +461,12 @@ document
     startGame
   );
 
-
 document
   .getElementById("cashoutBtn")
   .addEventListener(
     "click",
     cashOut
   );
-
 
 document
   .getElementById("homeBtn")
@@ -496,4 +485,4 @@ loadBalance();
 </script>
 
 </body>
-  </html>
+</html>
