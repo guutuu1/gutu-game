@@ -219,7 +219,7 @@ let currentMultiplier = 1.00;
 let gameTimer = null;
 let isPlaying = false;
 
-// Load user balance from profiles table
+// Load user balance and verify pending Chapa transactions
 async function loadBalance() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   
@@ -228,6 +228,40 @@ async function loadBalance() {
     return;
   }
 
+  // Check if Chapa redirected back with a transaction reference
+  const urlParams = new URLSearchParams(window.location.search);
+  const txRef = urlParams.get("tx_ref") || urlParams.get("trx_ref");
+
+  if (txRef) {
+    document.getElementById("walletResult").innerText = "Verifying deposit...";
+    
+    try {
+      // Call Edge Function to verify the payment and credit balance
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/clever-task`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ tx_ref: txRef })
+      });
+      
+      const resData = await res.json();
+      
+      if (res.ok) {
+        document.getElementById("walletResult").innerText = "✅ Deposit successful!";
+      } else {
+        document.getElementById("walletResult").innerText = "❌ " + (resData.message || "Verification failed");
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+    }
+
+    // Clean URL query parameters so refresh doesn't re-trigger verification
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Fetch updated balance from database
   const { data, error } = await supabaseClient
     .from("profiles")
     .select("balance")
@@ -449,4 +483,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 </body>
-  </html>
+    </html>
