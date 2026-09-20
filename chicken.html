@@ -350,6 +350,11 @@ async function handleDeposit() {
 
   const { data: { session } } = await supabaseClient.auth.getSession();
 
+  if (!session) {
+    resDiv.innerText = "❌ Please log in again.";
+    return;
+  }
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/clever-task`, {
       method: "POST",
@@ -357,7 +362,13 @@ async function handleDeposit() {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${session.access_token}`
       },
-      body: JSON.stringify({ amount, method })
+      body: JSON.stringify({ 
+        amount: amount, 
+        method: method,
+        email: session.user.email,
+        user_id: session.user.id,
+        return_url: window.location.href
+      })
     });
 
     const resData = await response.json();
