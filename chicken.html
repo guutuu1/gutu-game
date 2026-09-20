@@ -48,12 +48,13 @@ header {
   padding: 15px;
 }
 
-.game-box {
+.game-box, .wallet-box {
   background: #121a2e;
   border: 1px solid #26314d;
   border-radius: 20px;
   padding: 25px 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  margin-bottom: 20px;
 }
 
 .chicken {
@@ -74,7 +75,7 @@ header {
   margin-bottom: 20px;
 }
 
-input {
+input, select {
   width: 100%;
   padding: 14px;
   border-radius: 10px;
@@ -106,6 +107,8 @@ button:disabled {
 
 .start-btn { background: #f5b400; color: #111; }
 .cashout-btn { background: #20c878; color: white; }
+.deposit-btn { background: #0088cc; color: white; }
+.withdraw-btn { background: #e63946; color: white; }
 .logout-btn { background: #252c3b; color: #9ca8c2; font-size: 14px; padding: 10px; margin-top: 15px; }
 
 .result {
@@ -113,6 +116,33 @@ button:disabled {
   font-size: 16px;
   min-height: 24px;
   font-weight: bold;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: #1d2945;
+  color: white;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.tab-btn.active {
+  background: #20c878;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
 }
 </style>
 </head>
@@ -125,6 +155,7 @@ button:disabled {
 </header>
 
 <div class="container">
+  <!-- GAME SECTION -->
   <div class="game-box">
     <div class="chicken">🐔</div>
     <div class="multiplier" id="multiplier">1.00x</div>
@@ -136,6 +167,39 @@ button:disabled {
     <button class="cashout-btn" id="cashoutBtn" disabled>CASH OUT</button>
 
     <div class="result" id="result"></div>
+  </div>
+
+  <!-- WALLET SECTION -->
+  <div class="wallet-box">
+    <h3>💳 Wallet & Payments</h3>
+    <br>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabDepBtn">Deposit</button>
+      <button class="tab-btn" id="tabWithBtn">Withdraw</button>
+    </div>
+
+    <!-- DEPOSIT FORM -->
+    <div class="tab-content active" id="depositTab">
+      <input type="number" id="depAmount" placeholder="Deposit Amount (ETB)" min="10" value="50">
+      <select id="depMethod">
+        <option value="Telebirr">Telebirr / Chapa</option>
+        <option value="CBE Birr">CBE Birr</option>
+      </select>
+      <button class="deposit-btn" id="depositBtn">PROCEED TO DEPOSIT</button>
+    </div>
+
+    <!-- WITHDRAW FORM -->
+    <div class="tab-content" id="withdrawTab">
+      <input type="number" id="withAmount" placeholder="Withdraw Amount (ETB)" min="50">
+      <input type="text" id="withAccount" placeholder="Phone Number / Account">
+      <select id="withMethod">
+        <option value="Telebirr">Telebirr</option>
+        <option value="CBE">CBE Bank</option>
+      </select>
+      <button class="withdraw-btn" id="withdrawBtn">REQUEST WITHDRAWAL</button>
+    </div>
+
+    <div class="result" id="walletResult"></div>
     <button class="logout-btn" id="logoutBtn">Log Out</button>
   </div>
 </div>
@@ -193,7 +257,6 @@ async function startGame() {
   resultDiv.innerText = "Placing bet on server...";
   document.getElementById("startBtn").disabled = true;
 
-  // Call secure Postgres RPC
   const { data, error } = await supabaseClient.rpc("place_bet", { bet_amount: bet });
 
   if (error) {
@@ -213,12 +276,10 @@ async function startGame() {
     document.getElementById("status").innerText = "Game running...";
     resultDiv.innerText = "";
 
-    // Start game tick animation
     gameTimer = setInterval(function() {
       currentMultiplier += 0.03;
       document.getElementById("multiplier").innerText = currentMultiplier.toFixed(2) + "x";
 
-      // Check if crashed
       if (currentMultiplier >= currentCrashMultiplier) {
         handleCrash();
       }
@@ -249,7 +310,6 @@ async function cashOut() {
 
   const cashedMultiplier = Number(currentMultiplier.toFixed(2));
 
-  // Call secure Postgres RPC
   const { data, error } = await supabaseClient.rpc("cash_out", {
     p_bet_id: currentBetId,
     cashed_multiplier: cashedMultiplier
@@ -275,19 +335,107 @@ async function cashOut() {
   }
 }
 
+// Handle Deposit via Chapa Edge Function
+async function handleDeposit() {
+  const amount = Number(document.getElementById("depAmount").value);
+  const method = document.getElementById("depMethod").value;
+  const resDiv = document.getElementById("walletResult");
+
+  if (!amount || amount < 10) {
+    resDiv.innerText = "Minimum deposit is 10 ETB.";
+    return;
+  }
+
+  resDiv.innerText = "Redirecting to Chapa checkout...";
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/clever-task`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ amount, method })
+    });
+
+    const resData = await response.json();
+
+    if (resData.checkout_url) {
+      window.location.href = resData.checkout_url;
+    } else {
+      resDiv.innerText = "❌ " + (resData.error || "Deposit initiation failed.");
+    }
+  } catch (err) {
+    resDiv.innerText = "❌ Error: " + err.message;
+  }
+}
+
+// Handle Withdrawal
+async function handleWithdrawal() {
+  const amount = Number(document.getElementById("withAmount").value);
+  const account = document.getElementById("withAccount").value;
+  const method = document.getElementById("withMethod").value;
+  const resDiv = document.getElementById("walletResult");
+
+  if (!amount || amount < 50) {
+    resDiv.innerText = "Minimum withdrawal is 50 ETB.";
+    return;
+  }
+  if (!account) {
+    resDiv.innerText = "Please enter your account/phone number.";
+    return;
+  }
+
+  resDiv.innerText = "Processing withdrawal...";
+
+  const { data, error } = await supabaseClient.rpc("request_withdrawal", {
+    p_amount: amount,
+    p_account: account,
+    p_method: method
+  });
+
+  if (error) {
+    resDiv.innerText = "❌ " + error.message;
+  } else if (data && data.success) {
+    resDiv.innerText = "✅ Withdrawal requested! Admin will review shortly.";
+    loadBalance();
+  } else {
+    resDiv.innerText = "❌ " + (data.message || "Withdrawal failed.");
+  }
+}
+
 // Log Out
 async function logOut() {
   await supabaseClient.auth.signOut();
   window.location.href = "index.html";
 }
 
+// UI Tabs Switcher
+document.getElementById("tabDepBtn").addEventListener("click", function() {
+  document.getElementById("depositTab").classList.add("active");
+  document.getElementById("withdrawTab").classList.remove("active");
+  this.classList.add("active");
+  document.getElementById("tabWithBtn").classList.remove("active");
+});
+
+document.getElementById("tabWithBtn").addEventListener("click", function() {
+  document.getElementById("withdrawTab").classList.add("active");
+  document.getElementById("depositTab").classList.remove("active");
+  this.classList.add("active");
+  document.getElementById("tabDepBtn").classList.remove("active");
+});
+
 document.addEventListener("DOMContentLoaded", function() {
   loadBalance();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("cashoutBtn").addEventListener("click", cashOut);
+  document.getElementById("depositBtn").addEventListener("click", handleDeposit);
+  document.getElementById("withdrawBtn").addEventListener("click", handleWithdrawal);
   document.getElementById("logoutBtn").addEventListener("click", logOut);
 });
 </script>
 
 </body>
-  </html>
+      </html>
