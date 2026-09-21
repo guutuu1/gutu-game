@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gutu Game - Admin Panel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 15px; margin: 0; }
+    h1 { color: #f59e0b; font-size: 20px; }
+    .table-container { overflow-x: auto; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; min-width: 600px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
+    th { background: #334155; }
+    button { padding: 8px 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-refresh { background: #3b82f6; color: white; margin-bottom: 10px; }
+    .btn-approve { background: #22c55e; color: #fff; }
+    .btn-reject { background: #ef4444; color: #fff; margin-left: 5px; }
+    .status-completed { color: #22c55e; font-weight: bold; }
+    .status-rejected { color: #ef4444; font-weight: bold; }
+    .status-pending { color: #f59e0b; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>🛡️ Gutu Game Admin</h1>
+  <button class="btn-refresh" onclick="loadWithdrawals()">🔄 Refresh</button>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Account / Phone</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="withdrawalTable">
+        <tr><td colspan="6">Loading requests...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function loadWithdrawals() {
+      const tbody = document.getElementById("withdrawalTable");
+      tbody.innerHTML = "<tr><td colspan='6'>Fetching data...</td></tr>";
+
+      const { data, error } = await supabaseClient
+        .from("transactions")
+        .select("*")
+        .eq("type", "withdrawal")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan='6'>Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='6'>No withdrawal requests found.</td></tr>";
+        return;
+      }
+
+      tbody.innerHTML = data.map(tx => `
+        <tr>
+          <td>${new Date(tx.created_at).toLocaleDateString()}</td>
+          <td><b>${tx.amount} ETB</b></td>
+          <td>${tx.method || tx.payment_method || 'Telebirr'}</td>
+          <td><b>${tx.account_number}</b></td>
+          <td class="status-${tx.status}">${tx.status.toUpperCase()}</td>
+          <td>
+            ${tx.status === 'pending' ? `
+              <button class="btn-approve" onclick="updateStatus('${tx.id}', 'completed')">Approve</button>
+              <button class="btn-reject" onclick="rejectWithdrawal('${tx.id}', '${tx.user_id}',${tx.amount})">Reject</button>
+            ` : 'Done'}
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function updateStatus(txId, newStatus) {
+      if (!confirm(`Mark withdrawal as ${newStatus}?`)) return;
+
+      const { error } = await supabaseClient
+        .from("transactions")
+        .update({ status: newStatus })
+        .eq("id", txId);
+
+      if (error) {
+        alert("Failed to update: " + error.message);
+      } else {
+        alert(`Request marked as ${newStatus}!`);
+        loadWithdrawals();
+      }
+    }
+
+    async function rejectWithdrawal(txId, userId, amount) {
+      if (!confirm(`Reject request and refund ${amount} ETB to user?`)) return;
+
+      const { error: txError } = await supabaseClient
+        .from("transactions")
+        .update({ status: "rejected" })
+        .eq("id", txId);
+
+      if (txError) {
+        alert("Failed to reject: " + txError.message);
+        return;
+      }
+
+      const { error: balError } = await supabaseClient.rpc("increment_balance", {
+        p_user_id: userId,
+        p_amount: amount
+      });
+
+      if (balError) {
+        alert("Rejected, but refund failed: " + balError.message);
+      } else {
+        alert("Withdrawal rejected and balance refunded!");
+      }
+
+      loadWithdrawals();
+    }
+
+    loadWithdrawals();
+  </script>
+</body>
+    </html>
