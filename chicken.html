@@ -219,6 +219,21 @@ let currentMultiplier = 1.00;
 let gameTimer = null;
 let isPlaying = false;
 
+// Fetch user profile balance from DB
+async function fetchUserBalance(userId) {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("balance")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching balance:", error.message);
+  } else if (data) {
+    document.getElementById("balance").innerText = Number(data.balance).toFixed(2);
+  }
+}
+
 // Load user balance and verify pending Chapa transactions
 async function loadBalance() {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -257,22 +272,12 @@ async function loadBalance() {
       console.error("Verification error:", err);
     }
 
-    // Clean URL query parameters so refresh doesn't re-trigger verification
+    // Clean URL query parameters
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
   // Fetch updated balance from database
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("balance")
-    .eq("id", session.user.id)
-    .single();
-
-  if (error) {
-    console.error("Error fetching balance:", error.message);
-  } else if (data) {
-    document.getElementById("balance").innerText = Number(data.balance).toFixed(2);
-  }
+  await fetchUserBalance(session.user.id);
 }
 
 // Start Game using Server RPC
