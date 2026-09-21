@@ -6,200 +6,645 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "..")));
+/*
+==================================================
+SUPABASE
+==================================================
+*/
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+
+/*
+==================================================
+CHAPA
+==================================================
+*/
+
+const CHAPA_SECRET_KEY =
+  process.env.CHAPA_SECRET_KEY;
+
+
+/*
+==================================================
+WEBSITE
+==================================================
+*/
+
+app.use(
+  express.static(
+    path.join(__dirname, "..")
+  )
+);
+
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "index.html"));
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      "..",
+      "index.html"
+    )
+  );
+
 });
 
 
-/* =========================================
-   AUTOMATIC CHAPA WITHDRAWAL
-========================================= */
+/*
+==================================================
+CHECK LOGIN SESSION
+==================================================
+*/
 
-app.post("/api/withdraw", async (req, res) => {
+async function getAuthenticatedUser(req) {
+
+  const authorization =
+    req.headers.authorization || "";
+
+  if (!authorization.startsWith("Bearer ")) {
+
+    return {
+      user: null,
+      error: "Please log in first."
+    };
+
+  }
+
+
+  const accessToken =
+    authorization.substring(7);
+
 
   try {
 
-    const {
-      amount,
-      accountNumber,
-      accountName,
-      bankCode,
-      reference
-    } = req.body;
-
-
-    /* CHECK REQUIRED INFORMATION */
-
-    if (
-      !amount ||
-      !accountNumber ||
-      !accountName ||
-      !bankCode ||
-      !reference
-    ) {
-
-      return res.status(400).json({
-        success: false,
-        message: "Missing withdrawal information."
-      });
-
-    }
-
-
-    const numericAmount = Number(amount);
-
-
-    if (
-      !Number.isFinite(numericAmount) ||
-      numericAmount <= 0
-    ) {
-
-      return res.status(400).json({
-        success: false,
-        message: "Invalid withdrawal amount."
-      });
-
-    }
-
-
-    /* CHAPA SECRET KEY */
-
-    const chapaSecret =
-      process.env.CHAPA_SECRET_KEY;
-
-
-    if (!chapaSecret) {
-
-      console.error(
-        "CHAPA_SECRET_KEY is missing."
-      );
-
-      return res.status(500).json({
-        success: false,
-        message: "Chapa is not configured on the server."
-      });
-
-    }
-
-
-    /* =========================================
-       SEND MONEY THROUGH CHAPA
-    ========================================= */
-
-    const chapaResponse =
+    const response =
       await fetch(
-        "https://api.chapa.co/v1/transfers",
+        `${SUPABASE_URL}/auth/v1/user`,
         {
-
-          method: "POST",
+          method: "GET",
 
           headers: {
+            "apikey":
+              SUPABASE_ANON_KEY,
+
             "Authorization":
-              `Bearer ${chapaSecret}`,
-
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            account_name:
-              accountName,
-
-            account_number:
-              accountNumber,
-
-            amount:
-              String(numericAmount),
-
-            currency:
-              "ETB",
-
-            reference:
-              reference,
-
-            bank_code:
-              bankCode
-
-          })
-
+              `Bearer ${accessToken}`
+          }
         }
       );
 
 
-    const chapaData =
-      await chapaResponse.json();
+    const data =
+      await response.json();
 
 
-    console.log(
-      "Chapa transfer response:",
-      chapaData
+    if (!response.ok || !data.id) {
+
+      return {
+        user: null,
+        error:
+          "Your login session is invalid or expired."
+      };
+
+    }
+
+
+    return {
+      user: data,
+      error: null
+    };
+
+
+  } catch (error) {
+
+    console.error(
+      "Supabase authentication error:",
+      error
+    );
+
+    return {
+      user: null,
+      error:
+        "Could not verify your login."
+    };
+
+  }
+
+}
+
+
+/*
+==================================================
+GET CHAPA BANK LIST
+==================================================
+*/
+
+async function getChapaBanks() {
+
+  if (!CHAPA_SECRET_KEY) {
+
+    throw new Error(
+      "CHAPA_SECRET_KEY is missing on Render."
+    );
+
+  }
+
+
+  const response =
+    await fetch(
+      "https://api.chapa.co/v1/banks",
+      {
+        method: "GET",
+
+        headers: {
+          "Authorization":
+            `Bearer ${CHAPA_SECRET_KEY}`
+        }
+      }
     );
 
 
-    if (!chapaResponse.ok) {
+  const data =
+    await response.json();
 
-      return res.status(400).json({
 
-        success: false,
+  console.log(
+    "Chapa bank-list response status:",
+    response.status
+  );
+
+
+  if (!response.ok) {
+
+    console.error(
+      "Chapa bank-list error:",
+      data
+    );
+
+    throw new Error(
+      data.message ||
+      "Could not retrieve Chapa bank list."
+    );
+
+  }
+
+
+  return data;
+
+}
+
+
+/*
+==================================================
+FIND TELEBIRR BANK
+==================================================
+*/
+
+async function findTelebirrBank() {
+
+  const data =
+    await getChapaBanks();
+
+
+  let banks = [];
+
+
+  if (Array.isArray(data.data)) {
+
+    banks = data.data;
+
+  } else if (
+    data.data &&
+    Array.isArray(data.data.data)
+  ) {
+
+    banks = data.data.data;
+
+  } else if (
+    data.data &&
+    Array.isArray(data.data.banks)
+  ) {
+
+    banks = data.data.banks;
+
+  }
+
+
+  const telebirr =
+    banks.find((bank) => {
+
+      const name =
+        String(
+          bank.name ||
+          bank.bank_name ||
+          bank.bankName ||
+          bank.bank ||
+          ""
+        ).toLowerCase();
+
+      return (
+        name.includes("telebirr")
+      );
+
+    });
+
+
+  if (!telebirr) {
+
+    console.error(
+      "Telebirr was not found.",
+      data
+    );
+
+    throw new Error(
+      "Telebirr was not found in Chapa's bank list."
+    );
+
+  }
+
+
+  const bankCode =
+    telebirr.bank_code ??
+    telebirr.code ??
+    telebirr.id;
+
+
+  if (
+    bankCode === undefined ||
+    bankCode === null ||
+    bankCode === ""
+  ) {
+
+    throw new Error(
+      "Chapa returned Telebirr without a bank code."
+    );
+
+  }
+
+
+  console.log(
+    "Telebirr bank found:",
+    telebirr
+  );
+
+
+  return String(bankCode);
+
+}
+
+
+/*
+==================================================
+AUTOMATIC WITHDRAWAL
+==================================================
+*/
+
+app.post(
+  "/api/withdraw",
+  async (req, res) => {
+
+    try {
+
+      /*
+      --------------------------------------------
+      CHAPA KEY
+      --------------------------------------------
+      */
+
+      if (!CHAPA_SECRET_KEY) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "CHAPA_SECRET_KEY is not configured on Render."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      AUTHENTICATE USER
+      --------------------------------------------
+      */
+
+      const {
+        user,
+        error: authError
+      } =
+        await getAuthenticatedUser(req);
+
+
+      if (!user) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            authError ||
+            "Authentication failed."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      GET WITHDRAWAL DATA
+      --------------------------------------------
+      */
+
+      const {
+        amount,
+        accountNumber,
+        method
+      } = req.body;
+
+
+      const withdrawalAmount =
+        Number(amount);
+
+
+      const account =
+        String(
+          accountNumber || ""
+        ).trim();
+
+
+      /*
+      --------------------------------------------
+      VALIDATE AMOUNT
+      --------------------------------------------
+      */
+
+      if (
+        !Number.isFinite(
+          withdrawalAmount
+        )
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Invalid withdrawal amount."
+
+        });
+
+      }
+
+
+      if (
+        withdrawalAmount < 50
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Minimum withdrawal is 50 ETB."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      VALIDATE ACCOUNT
+      --------------------------------------------
+      */
+
+      if (
+        !account ||
+        account.length < 5
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Please enter a valid Telebirr account number."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      VALIDATE METHOD
+      --------------------------------------------
+      */
+
+      if (
+        method !== "Telebirr"
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Automatic withdrawal is currently configured for Telebirr."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      UNIQUE REFERENCE
+      --------------------------------------------
+      */
+
+      const reference =
+        "GUTU-" +
+        Date.now() +
+        "-" +
+        Math.floor(
+          Math.random() * 1000000
+        );
+
+
+      /*
+      --------------------------------------------
+      FIND TELEBIRR BANK CODE
+      --------------------------------------------
+      */
+
+      const bankCode =
+        await findTelebirrBank();
+
+
+      /*
+      --------------------------------------------
+      SEND TRANSFER TO CHAPA
+      --------------------------------------------
+      */
+
+      const chapaResponse =
+        await fetch(
+          "https://api.chapa.co/v1/transfers",
+          {
+
+            method: "POST",
+
+            headers: {
+
+              "Authorization":
+                `Bearer ${CHAPA_SECRET_KEY}`,
+
+              "Content-Type":
+                "application/json"
+
+            },
+
+            body: JSON.stringify({
+
+              account_number:
+                account,
+
+              amount:
+                withdrawalAmount.toFixed(2),
+
+              currency:
+                "ETB",
+
+              reference:
+                reference,
+
+              bank_code:
+                bankCode
+
+            })
+
+          }
+        );
+
+
+      const chapaData =
+        await chapaResponse.json();
+
+
+      console.log(
+        "Chapa transfer status:",
+        chapaResponse.status
+      );
+
+
+      console.log(
+        "Chapa transfer response:",
+        chapaData
+      );
+
+
+      /*
+      --------------------------------------------
+      CHAPA REJECTED REQUEST
+      --------------------------------------------
+      */
+
+      if (!chapaResponse.ok) {
+
+        return res.status(
+          chapaResponse.status
+        ).json({
+
+          success: false,
+
+          message:
+            chapaData.message ||
+            "Chapa rejected the transfer.",
+
+          reference:
+            reference
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      CHAPA ACCEPTED / QUEUED
+      --------------------------------------------
+      */
+
+      return res.status(200).json({
+
+        success: true,
+
+        status:
+          chapaData.status ||
+          "pending",
 
         message:
           chapaData.message ||
-          "Chapa transfer failed.",
+          "Transfer request accepted by Chapa.",
+
+        reference:
+          reference,
 
         chapa:
           chapaData
 
       });
 
+
+    } catch (error) {
+
+      console.error(
+        "WITHDRAWAL ERROR:",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          error.message ||
+          "Withdrawal server error."
+
+      });
+
     }
 
-
-    /* =========================================
-       SUCCESSFUL TRANSFER REQUEST
-    ========================================= */
-
-    return res.json({
-
-      success: true,
-
-      message:
-        "Withdrawal sent to Chapa.",
-
-      data:
-        chapaData
-
-    });
+  }
+);
 
 
-  } catch (error) {
+/*
+==================================================
+START SERVER
+==================================================
+*/
 
-    console.error(
-      "Withdrawal error:",
-      error
+app.listen(
+  PORT,
+  () => {
+
+    console.log(
+      `Gutu-Game running on port ${PORT}`
     );
 
-
-    return res.status(500).json({
-
-      success: false,
-
-      message:
-        "Server error while processing withdrawal."
-
-    });
-
   }
-
-});
-
-
-app.listen(PORT, () => {
-
-  console.log(
-    `Gutu-Game running on port ${PORT}`
-  );
-
-});
+);
