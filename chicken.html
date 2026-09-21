@@ -389,6 +389,13 @@ async function handleDeposit() {
     return;
   }
 
+  // Generate unique transaction reference
+  const txRef = "gutu-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+  
+  // Clean base URL and attach tx_ref query parameter
+  const baseUrl = window.location.origin + window.location.pathname;
+  const returnUrl = `${baseUrl}?tx_ref=${txRef}`;
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/clever-task`, {
       method: "POST",
@@ -401,7 +408,8 @@ async function handleDeposit() {
         method: method,
         email: session.user.email,
         user_id: session.user.id,
-        return_url: window.location.href
+        tx_ref: txRef,
+        return_url: returnUrl
       })
     });
 
@@ -483,4 +491,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
 </body>
-    </html>
+  </html>
