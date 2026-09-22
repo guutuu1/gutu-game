@@ -6,8 +6,6 @@
   <title>Gutu Chicken Game</title>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chapa Inline JS -->
-  <script src="https://checkout.chapa.co/v1/inline.js"></script>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #0f172a; color: #ffffff; margin: 0; padding: 15px; }
@@ -64,7 +62,7 @@
     <div id="depositForm">
       <label>Amount (ETB):</label>
       <input type="number" id="depositAmount" value="50" min="10" />
-      <button class="btn btn-primary" onclick="processDeposit()">DEPOSIT VIA CHAPA</button>
+      <button class="btn btn-primary" id="depositBtn" onclick="processDeposit()">DEPOSIT VIA CHAPA</button>
     </div>
 
     <!-- Withdrawal Form -->
@@ -91,7 +89,7 @@
   </div>
 
   <script>
-    // Configuration
+    // Configuration Credentials
     const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
     const CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-5hnHmWVNB";
@@ -207,17 +205,26 @@
       document.getElementById('cashoutBtn').classList.add('hidden');
     }
 
-    // Robust Deposit Logic via Chapa Popup
-    function processDeposit() {
+    // Dynamic Deposit Loader
+    async function processDeposit() {
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (isNaN(amount) || amount < 10) return showStatus("Minimum deposit is 10 ETB.", "error");
 
+      showStatus("Loading payment gateway...", "success");
+
+      // Load Chapa inline script dynamically to bypass Render CSP blocks
       if (typeof ChapaCheckout === "undefined") {
-        return showStatus("Chapa payment engine is loading. Please try again in a few seconds.", "error");
+        const script = document.createElement("script");
+        script.src = "https://checkout.chapa.co/v1/inline.js";
+        script.onload = () => triggerChapaPayment(amount);
+        script.onerror = () => showStatus("Failed to load Chapa gateway. Check your network.", "error");
+        document.body.appendChild(script);
+      } else {
+        triggerChapaPayment(amount);
       }
+    }
 
-      showStatus("Opening payment modal...", "success");
-
+    function triggerChapaPayment(amount) {
       const txRef = "tx-gutu-" + Date.now();
       const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
 
@@ -241,13 +248,13 @@
             fetchBalance();
           },
           onClose: function() {
-            showStatus("Payment process was cancelled.", "error");
+            showStatus("Payment window closed.", "error");
           }
         });
 
         ChapaCheckout.show();
       } catch (err) {
-        showStatus("Error launching Chapa popup: " + err.message, "error");
+        showStatus("Error opening payment window: " + err.message, "error");
       }
     }
 
@@ -282,4 +289,4 @@
     initSession();
   </script>
 </body>
-  </html>
+</html>
