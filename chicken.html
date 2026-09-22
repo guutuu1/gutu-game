@@ -6,8 +6,6 @@
   <title>Gutu Chicken Game</title>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chapa Inline JS -->
-  <script src="https://checkout.chapa.co/v1/inline.js"></script>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #0f172a; color: #ffffff; margin: 0; padding: 15px; }
@@ -94,7 +92,7 @@
     // Configuration
     const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-    const CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-5hnHmWVNB"; // Your Chapa Test Key
+    const CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-5hnHmWVNB";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -210,42 +208,21 @@
       document.getElementById('cashoutBtn').classList.add('hidden');
     }
 
-    // Deposit Logic via Chapa Checkout
+    // Deposit Logic via Direct Chapa Redirect
     function processDeposit() {
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (isNaN(amount) || amount < 10) return showStatus("Minimum deposit is 10 ETB.", "error");
 
-      showStatus("Opening Chapa Checkout...", "success");
+      showStatus("Redirecting to Chapa Checkout...", "success");
 
       const txRef = "tx-gutu-" + Date.now();
-      const userEmail = currentUser && currentUser.email ? currentUser.email : "player@gutu.com";
+      const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
 
-      // Initialize Chapa Checkout Popup
-      ChapaCheckout.configure({
-        public_key: CHAPA_PUBLIC_KEY,
-        tx_ref: txRef,
-        amount: amount,
-        currency: "ETB",
-        email: userEmail,
-        first_name: "Gutu",
-        last_name: "Player",
-        title: "Gutu Game Deposit",
-        description: "Wallet Deposit",
-        onSuccess: async function() {
-          showStatus("Payment Successful! Crediting balance...", "success");
-          // Credit user balance upon successful checkout completion
-          await supabaseClient.rpc('increment_balance', {
-            p_user_id: currentUser.id,
-            p_amount: amount
-          });
-          fetchBalance();
-        },
-        onClose: function() {
-          showStatus("Payment window closed.", "error");
-        }
-      });
+      // Build direct Chapa hosted checkout URL
+      const checkoutUrl = `https://checkout.chapa.co/checkout/payment/${CHAPA_PUBLIC_KEY}?amount=${amount}&currency=ETB&email=${encodeURIComponent(userEmail)}&tx_ref=${txRef}&title=Gutu+Game+Deposit`;
 
-      ChapaCheckout.show();
+      // Redirect browser directly to Chapa page
+      window.location.href = checkoutUrl;
     }
 
     // Withdrawal Logic
@@ -279,4 +256,4 @@
     initSession();
   </script>
 </body>
-        </html>
+  </html>
