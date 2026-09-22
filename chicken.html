@@ -195,7 +195,6 @@
       document.getElementById('cashoutBtn').classList.add('hidden');
     }
 
-    // Process Deposit via Backend RPC
     async function processDeposit() {
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (isNaN(amount) || amount < 10) return showStatus("Minimum deposit is 10 ETB.", "error");
@@ -219,12 +218,15 @@
           return showStatus("Error initializing session: " + error.message, "error");
         }
 
-        if (data && data.status === "success" && data.data && data.data.checkout_url) {
+        // Parse response safely
+        let resData = typeof data === "string" ? JSON.parse(data) : data;
+
+        if (resData && resData.status === "success" && resData.data && resData.data.checkout_url) {
           showStatus("Redirecting to Chapa Payment Page...", "success");
-          window.location.href = data.data.checkout_url;
+          window.location.href = resData.data.checkout_url;
         } else {
           btn.disabled = false;
-          showStatus("Chapa Error: " + (data ? data.message : "Failed to load checkout URL"), "error");
+          showStatus("Chapa Error: " + (resData ? resData.message : "Failed to load checkout URL"), "error");
         }
       } catch (err) {
         btn.disabled = false;
@@ -278,4 +280,4 @@
     initSession().then(handlePaymentReturn);
   </script>
 </body>
-      </html>
+  </html>
