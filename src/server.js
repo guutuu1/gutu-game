@@ -302,6 +302,215 @@ async function findTelebirrBank() {
 
 /*
 ==================================================
+CHAPA PAYMENT CALLBACK
+==================================================
+
+Chapa sends the transaction reference and status
+to this URL after payment.
+
+IMPORTANT:
+We verify the transaction directly with Chapa
+before treating it as successful.
+==================================================
+*/
+
+app.get(
+  "/api/chapa/callback",
+  async (req, res) => {
+
+    try {
+
+      /*
+      --------------------------------------------
+      CHECK CHAPA KEY
+      --------------------------------------------
+      */
+
+      if (!CHAPA_SECRET_KEY) {
+
+        return res.status(500).send(
+          "CHAPA_SECRET_KEY is not configured on Render."
+        );
+
+      }
+
+
+      /*
+      --------------------------------------------
+      GET TRANSACTION REFERENCE
+      --------------------------------------------
+      */
+
+      const txRef =
+        req.query.trx_ref ||
+        req.query.tx_ref ||
+        "";
+
+
+      const callbackStatus =
+        req.query.status ||
+        "";
+
+
+      console.log(
+        "CHAPA CALLBACK:",
+        {
+          txRef,
+          callbackStatus
+        }
+      );
+
+
+      if (!txRef) {
+
+        return res.status(400).send(
+          "Missing Chapa transaction reference."
+        );
+
+      }
+
+
+      /*
+      --------------------------------------------
+      VERIFY TRANSACTION WITH CHAPA
+      --------------------------------------------
+      */
+
+      const verifyResponse =
+        await fetch(
+          `https://api.chapa.co/v1/transaction/verify/${encodeURIComponent(txRef)}`,
+          {
+            method: "GET",
+
+            headers: {
+              "Authorization":
+                `Bearer ${CHAPA_SECRET_KEY}`
+            }
+          }
+        );
+
+
+      const verifyData =
+        await verifyResponse.json();
+
+
+      console.log(
+        "CHAPA VERIFY STATUS:",
+        verifyResponse.status
+      );
+
+
+      console.log(
+        "CHAPA VERIFY RESPONSE:",
+        verifyData
+      );
+
+
+      /*
+      --------------------------------------------
+      VERIFY REQUEST FAILED
+      --------------------------------------------
+      */
+
+      if (!verifyResponse.ok) {
+
+        return res.status(400).send(
+          "Chapa transaction verification failed."
+        );
+
+      }
+
+
+      /*
+      --------------------------------------------
+      GET VERIFIED TRANSACTION
+      --------------------------------------------
+      */
+
+      const transaction =
+        verifyData.data ||
+        {};
+
+
+      const verifiedStatus =
+        String(
+          transaction.status ||
+          verifyData.status ||
+          ""
+        ).toLowerCase();
+
+
+      /*
+      --------------------------------------------
+      PAYMENT SUCCESS
+      --------------------------------------------
+      */
+
+      if (
+        verifiedStatus === "success"
+      ) {
+
+        console.log(
+          "CHAPA PAYMENT VERIFIED SUCCESSFULLY:",
+          txRef
+        );
+
+
+        /*
+        IMPORTANT:
+        Wallet crediting will be connected to the
+        user's deposit record in the next step.
+        We do NOT automatically add money here yet.
+        */
+
+
+        return res.redirect(
+          "/chicken.html?payment=success"
+        );
+
+      }
+
+
+      /*
+      --------------------------------------------
+      PAYMENT NOT SUCCESSFUL
+      --------------------------------------------
+      */
+
+      console.log(
+        "CHAPA PAYMENT NOT SUCCESSFUL:",
+        {
+          txRef,
+          verifiedStatus
+        }
+      );
+
+
+      return res.redirect(
+        "/chicken.html?payment=failed"
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "CHAPA CALLBACK ERROR:",
+        error
+      );
+
+
+      return res.status(500).send(
+        "Chapa callback server error."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+==================================================
 AUTOMATIC WITHDRAWAL
 ==================================================
 */
