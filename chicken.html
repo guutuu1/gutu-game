@@ -98,7 +98,7 @@
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
         currentUser = session.user;
-        fetchBalance();
+        await fetchBalance();
       } else {
         showStatus("Please log in to play.", "error");
       }
@@ -242,12 +242,19 @@
 
       if (status === 'success' && !isNaN(amount) && currentUser) {
         showStatus("Processing deposit of " + amount + " ETB...", "success");
-        await supabaseClient.rpc('increment_balance', {
+        const { error } = await supabaseClient.rpc('increment_balance', {
           p_user_id: currentUser.id,
           p_amount: amount
         });
+
+        if (!error) {
+          showStatus("Deposit of " + amount + " ETB successfully added!", "success");
+        } else {
+          showStatus("Deposit update error: " + error.message, "error");
+        }
+
         window.history.replaceState({}, document.title, window.location.pathname);
-        fetchBalance();
+        await fetchBalance();
       }
     }
 
@@ -278,7 +285,12 @@
       window.location.reload();
     }
 
-    initSession().then(handlePaymentReturn);
+    async function startApp() {
+      await initSession();
+      await handlePaymentReturn();
+    }
+
+    startApp();
   </script>
 </body>
-</html>
+  </html>
