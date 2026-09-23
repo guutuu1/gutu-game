@@ -202,17 +202,16 @@
 
       const btn = document.getElementById('depositBtn');
       btn.disabled = true;
-      showStatus("Initializing secure Chapa payment...", "success");
+      showStatus("Connecting to Chapa...", "success");
 
       const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
       const returnUrl = window.location.origin + window.location.pathname + "?status=success&amount=" + amount;
 
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/chapa-pay`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/bright-responder`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + SUPABASE_ANON_KEY
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             amount: amount,
@@ -224,15 +223,15 @@
         const data = await response.json();
 
         if (data && data.status === "success" && data.data && data.data.checkout_url) {
-          showStatus("Redirecting to Chapa...", "success");
+          showStatus("Redirecting to Chapa Payment Page...", "success");
           window.location.href = data.data.checkout_url;
         } else {
           btn.disabled = false;
-          showStatus("Chapa Error: " + (data.message || "Failed to generate session."), "error");
+          showStatus("Chapa Error: " + (data.message || JSON.stringify(data)), "error");
         }
       } catch (err) {
         btn.disabled = false;
-        showStatus("Network Error: " + err.message, "error");
+        showStatus("Connection Error: " + err.message, "error");
       }
     }
 
@@ -282,4 +281,4 @@
     initSession().then(handlePaymentReturn);
   </script>
 </body>
-</html>
+  </html>
