@@ -92,7 +92,7 @@
     // Configuration Credentials
     const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-    const CHAPA_SECRET_KEY = "CHASECK_TEST-uF2olztxj7g0oZulV00TYoNYVv0pVYYH";
+    const CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-5hnHmWVNB";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -205,55 +205,31 @@
       document.getElementById('cashoutBtn').classList.add('hidden');
     }
 
-    // Deposit via Direct CORS-Bypassed Fetch
-    async function processDeposit() {
+    // Direct Hosted Chapa Checkout
+    function processDeposit() {
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (isNaN(amount) || amount < 10) return showStatus("Minimum deposit is 10 ETB.", "error");
 
-      const btn = document.getElementById('depositBtn');
-      btn.disabled = true;
-      showStatus("Connecting to Chapa...", "success");
+      showStatus("Redirecting to Chapa...", "success");
 
       const txRef = "tx-gutu-" + Date.now();
       const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
       const returnUrl = window.location.origin + window.location.pathname + "?status=success&amount=" + amount;
 
-      // Wrap Chapa URL in CORS proxy to allow direct JS initialization from web browser
-      const chapaEndpoint = "https://api.chapa.co/v1/transaction/initialize";
-      const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(chapaEndpoint);
+      // Construct direct hosted checkout URL
+      const chapaUrl = "https://checkout.chapa.co/checkout/web/payment/" + 
+        "?public_key=" + encodeURIComponent(CHAPA_PUBLIC_KEY) +
+        "&tx_ref=" + encodeURIComponent(txRef) +
+        "&amount=" + encodeURIComponent(amount) +
+        "&currency=ETB" +
+        "&email=" + encodeURIComponent(userEmail) +
+        "&first_name=Gutu" +
+        "&last_name=Player" +
+        "&title=" + encodeURIComponent("Gutu Game Deposit") +
+        "&return_url=" + encodeURIComponent(returnUrl);
 
-      try {
-        const response = await fetch(proxyUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + CHAPA_SECRET_KEY,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            amount: amount.toString(),
-            currency: "ETB",
-            email: userEmail,
-            first_name: "Gutu",
-            last_name: "Player",
-            tx_ref: txRef,
-            return_url: returnUrl,
-            "customization[title]": "Gutu Game Deposit"
-          })
-        });
-
-        const data = await response.json();
-
-        if (data && data.status === "success" && data.data && data.data.checkout_url) {
-          showStatus("Redirecting to Chapa Payment Page...", "success");
-          window.location.href = data.data.checkout_url;
-        } else {
-          btn.disabled = false;
-          showStatus("Chapa Error: " + (data.message || "Could not generate checkout link."), "error");
-        }
-      } catch (err) {
-        btn.disabled = false;
-        showStatus("Network Error: " + err.message, "error");
-      }
+      // Immediate browser navigation
+      window.location.href = chapaUrl;
     }
 
     // Handle Return from Payment Page
@@ -304,4 +280,4 @@
     initSession().then(handlePaymentReturn);
   </script>
 </body>
-    </html>
+  </html>
