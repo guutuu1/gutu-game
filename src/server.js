@@ -2,9 +2,11 @@ const express = require("express");
 const path = require("path");
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /*
 ==================================================
@@ -17,8 +19,10 @@ const SUPABASE_URL =
   "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
 const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ||
-  "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+  process.env.SUPABASE_ANON_KEY || "";
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 /*
 ==================================================
@@ -27,163 +31,116 @@ CHAPA
 */
 
 const CHAPA_SECRET_KEY =
-  process.env.CHAPA_SECRET_KEY;
+  process.env.CHAPA_SECRET_KEY || "";
+
+const SITE_URL =
+  process.env.SITE_URL ||
+  "https://gutu-game.onrender.com";
+
 
 /*
 ==================================================
-WEBSITE
+SUPABASE REQUEST HELPER
 ==================================================
 */
 
-app.use(
-  express.static(
-    path.join(__dirname, "..")
-  )
-);
+async function supabaseRequest(endpoint, options = {}) {
+  const response = await fetch(
+    `${SUPABASE_URL}${endpoint}`,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
 
-app.get("/", (req, res) => {
-  res.sendFile(
-    path.join(
-      __dirname,
-      "..",
-      "index.html"
-    )
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+
+        Authorization:
+          `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+        ...(options.headers || {})
+      }
+    }
   );
-});
 
-/*
-==================================================
-HELPER: READ CHAPA ERROR
-==================================================
-*/
+  const text = await response.text();
 
-function getChapaMessage(data) {
-
-  if (!data) {
-    return "Chapa returned an empty response.";
-  }
-
-  if (typeof data.message === "string") {
-    return data.message;
-  }
-
-  if (
-    data.message &&
-    typeof data.message === "object"
-  ) {
-    try {
-      return JSON.stringify(data.message);
-    } catch (error) {
-      return "Chapa returned an unreadable error message.";
-    }
-  }
-
-  if (typeof data.error === "string") {
-    return data.error;
-  }
-
-  if (
-    data.error &&
-    typeof data.error === "object"
-  ) {
-    try {
-      return JSON.stringify(data.error);
-    } catch (error) {
-      return "Chapa returned an unreadable error.";
-    }
-  }
-
-  if (typeof data.status === "string") {
-    return `Chapa returned status: ${data.status}`;
-  }
+  let data;
 
   try {
-    return JSON.stringify(data);
-  } catch (error) {
-    return "Unknown Chapa error.";
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
+
+  if (!response.ok) {
+    throw new Error(
+      typeof data === "string"
+        ? data
+        : JSON.stringify(data)
+    );
+  }
+
+  return data;
 }
+
 
 /*
 ==================================================
-CHECK LOGIN SESSION
+GET LOGGED-IN USER
 ==================================================
 */
 
-async function getAuthenticatedUser(req) {
+async function getUserFromToken(req) {
 
-  const authorization =
+  const authHeader =
     req.headers.authorization || "";
 
-  if (!authorization.startsWith("Bearer ")) {
-
-    return {
-      user: null,
-      error: "Please log in first."
-    };
-
+  if (!authHeader.startsWith("Bearer ")) {
+    return null;
   }
 
-  const accessToken =
-    authorization.substring(7);
+  const token =
+    authHeader.substring(7);
 
-  try {
+  if (!token) {
+    return null;
+  }
 
-    const response =
-      await fetch(
-        `${SUPABASE_URL}/auth/v1/user`,
-        {
-          method: "GET",
-
-          headers: {
-            "apikey":
-              SUPABASE_ANON_KEY,
-
-            "Authorization":
-              `Bearer ${accessToken}`
-          }
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok || !data.id) {
-
-      console.error(
-        "SUPABASE USER ERROR:",
-        data
-      );
-
-      return {
-        user: null,
-        error:
-          "Your login session is invalid or expired."
-      };
-
+  const response = await fetch(
+    `${SUPABASE_URL}/auth/v1/user`,
+    {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`
+      }
     }
+  );
 
-    return {
-      user: data,
-      error: null
-    };
-
-  } catch (error) {
-
-    console.error(
-      "Supabase authentication error:",
-      error
-    );
-
-    return {
-      user: null,
-      error:
-        "Could not verify your login."
-    };
-
+  if (!response.ok) {
+    return null;
   }
 
+  return await response.json();
 }
+
+
+/*
+==================================================
+HEALTH CHECK
+==================================================
+*/
+
+app.get("/health", (req, res) => {
+
+  res.json({
+    success: true,
+    message: "Gutu Game server is running",
+    port: PORT
+  });
+
+});
+
 
 /*
 ==================================================
@@ -191,941 +148,766 @@ CHAPA DEPOSIT
 ==================================================
 */
 
-app.post(
-  "/api/chapa/initialize",
-  async (req, res) => {
-
-    try {
-
-      if (!CHAPA_SECRET_KEY) {
-
-        console.error(
-          "CHAPA_SECRET_KEY is missing."
-        );
-
-        return res.status(500).json({
-
-          success: false,
-
-          message:
-            "CHAPA_SECRET_KEY is missing on Render."
-
-        });
-
-      }
-
-      const {
-        user,
-        error: authError
-      } =
-        await getAuthenticatedUser(req);
-
-      if (!user) {
-
-        return res.status(401).json({
-
-          success: false,
-
-          message:
-            authError ||
-            "Please log in first."
-
-        });
-
-      }
-
-      const amount =
-        Number(req.body.amount);
-
-      if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Please enter a valid deposit amount."
-
-        });
-
-      }
-
-      const email =
-        String(
-          user.email || ""
-        ).trim();
-
-      if (!email) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Your account does not have an email address."
-
-        });
-
-      }
-
-      const firstName =
-        String(
-          user.user_metadata?.first_name ||
-          user.user_metadata?.firstName ||
-          "Gutu"
-        ).trim();
-
-      const lastName =
-        String(
-          user.user_metadata?.last_name ||
-          user.user_metadata?.lastName ||
-          "Game"
-        ).trim();
-
-      const txRef =
-        "GUTU-DEPOSIT-" +
-        Date.now() +
-        "-" +
-        Math.floor(
-          Math.random() * 1000000
-        );
-
-      const siteUrl =
-        "https://gutu-game.onrender.com";
-
-      const paymentData = {
-
-        amount:
-          amount.toFixed(2),
-
-        currency:
-          "ETB",
-
-        email:
-          email,
-
-        first_name:
-          firstName,
-
-        last_name:
-          lastName,
-
-        tx_ref:
-          txRef,
-
-        callback_url:
-          `${siteUrl}/api/chapa/callback`,
-
-        return_url:
-          `${siteUrl}/chicken.html?payment=returned`,
-
-        customization: {
-
-          title:
-            "Gutu Game",
-
-          description:
-            "Gutu Game wallet deposit"
-
-        }
-
-      };
-
-      console.log(
-        "===================================="
-      );
-
-      console.log(
-        "CHAPA DEPOSIT REQUEST:"
-      );
-
-      console.log(
-        paymentData
-      );
-
-      const chapaResponse =
-        await fetch(
-          "https://api.chapa.co/v1/transaction/initialize",
-          {
-
-            method: "POST",
-
-            headers: {
-
-              "Authorization":
-                `Bearer ${CHAPA_SECRET_KEY}`,
-
-              "Content-Type":
-                "application/json",
-
-              "Accept":
-                "application/json"
-
-            },
-
-            body:
-              JSON.stringify(
-                paymentData
-              )
-
-          }
-        );
-
-      const responseText =
-        await chapaResponse.text();
-
-      let chapaData = {};
-
-      try {
-
-        chapaData =
-          responseText
-            ? JSON.parse(responseText)
-            : {};
-
-      } catch (parseError) {
-
-        console.error(
-          "CHAPA RETURNED NON-JSON:",
-          responseText
-        );
-
-        return res.status(502).json({
-
-          success: false,
-
-          message:
-            "Chapa returned an invalid response.",
-
-          details:
-            responseText
-
-        });
-
-      }
-
-      console.log(
-        "CHAPA INITIALIZE STATUS:",
-        chapaResponse.status
-      );
-
-      console.log(
-        "CHAPA INITIALIZE RESPONSE:",
-        chapaData
-      );
-
-      if (
-        !chapaResponse.ok ||
-        chapaData.status !== "success"
-      ) {
-
-        const readableMessage =
-          getChapaMessage(
-            chapaData
-          );
-
-        console.error(
-          "CHAPA INITIALIZE FAILED:",
-          readableMessage
-        );
-
-        return res.status(
-          chapaResponse.status >= 400
-            ? chapaResponse.status
-            : 400
-        ).json({
-
-          success: false,
-
-          message:
-            readableMessage,
-
-          status:
-            chapaData.status ||
-            "failed",
-
-          chapa:
-            chapaData
-
-        });
-
-      }
-
-      const checkoutUrl =
-        chapaData.data?.checkout_url;
-
-      if (!checkoutUrl) {
-
-        console.error(
-          "CHAPA DID NOT RETURN CHECKOUT URL:",
-          chapaData
-        );
-
-        return res.status(500).json({
-
-          success: false,
-
-          message:
-            "Chapa did not return a checkout URL.",
-
-          chapa:
-            chapaData
-
-        });
-
-      }
-
-      console.log(
-        "CHAPA CHECKOUT URL CREATED:"
-      );
-
-      console.log(
-        checkoutUrl
-      );
-
-      return res.status(200).json({
-
-        success: true,
-
-        message:
-          "Payment initialized successfully.",
-
-        tx_ref:
-          txRef,
-
-        checkout_url:
-          checkoutUrl
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "CHAPA DEPOSIT ERROR:",
-        error
-      );
-
-      return res.status(500).json({
-
-        success: false,
-
-        message:
-          error.message ||
-          "Chapa deposit server error."
-
-      });
-
-    }
-
-  }
-);
-
-/*
-==================================================
-GET CHAPA BANK LIST
-==================================================
-*/
-
-async function getChapaBanks() {
-
-  if (!CHAPA_SECRET_KEY) {
-
-    throw new Error(
-      "CHAPA_SECRET_KEY is missing on Render."
-    );
-
-  }
-
-  const response =
-    await fetch(
-      "https://api.chapa.co/v1/banks",
-      {
-        method: "GET",
-
-        headers: {
-          "Authorization":
-            `Bearer ${CHAPA_SECRET_KEY}`,
-
-          "Accept":
-            "application/json"
-        }
-      }
-    );
-
-  const responseText =
-    await response.text();
-
-  let data = {};
+app.post("/api/chapa/initialize", async (req, res) => {
 
   try {
 
-    data =
-      responseText
-        ? JSON.parse(responseText)
-        : {};
+    if (!CHAPA_SECRET_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "CHAPA_SECRET_KEY is not configured."
+      });
+    }
 
-  } catch (error) {
+    const user =
+      await getUserFromToken(req);
 
-    throw new Error(
-      "Chapa returned an invalid bank-list response."
-    );
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Please login first."
+      });
+    }
 
-  }
+    const amount =
+      Number(req.body.amount);
 
-  console.log(
-    "Chapa bank-list response status:",
-    response.status
-  );
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid deposit amount."
+      });
+    }
 
-  if (!response.ok) {
+    const txRef =
+      `GUTU-${user.id}-${Date.now()}`;
 
-    console.error(
-      "Chapa bank-list error:",
-      data
-    );
+    const firstName =
+      user.user_metadata?.first_name ||
+      user.user_metadata?.name ||
+      "Gutu";
 
-    throw new Error(
-      getChapaMessage(data)
-    );
+    const lastName =
+      user.user_metadata?.last_name ||
+      "Game";
 
-  }
+    const email =
+      user.email;
 
-  return data;
-}
-
-/*
-==================================================
-FIND TELEBIRR BANK
-==================================================
-*/
-
-async function findTelebirrBank() {
-
-  const data =
-    await getChapaBanks();
-
-  let banks = [];
-
-  if (Array.isArray(data.data)) {
-
-    banks = data.data;
-
-  } else if (
-    data.data &&
-    Array.isArray(data.data.data)
-  ) {
-
-    banks = data.data.data;
-
-  } else if (
-    data.data &&
-    Array.isArray(data.data.banks)
-  ) {
-
-    banks = data.data.banks;
-
-  }
-
-  const telebirr =
-    banks.find((bank) => {
-
-      const name =
-        String(
-          bank.name ||
-          bank.bank_name ||
-          bank.bankName ||
-          bank.bank ||
-          ""
-        ).toLowerCase();
-
-      return name.includes(
-        "telebirr"
-      );
-
-    });
-
-  if (!telebirr) {
-
-    console.error(
-      "Telebirr was not found.",
-      data
-    );
-
-    throw new Error(
-      "Telebirr was not found in Chapa's bank list."
-    );
-
-  }
-
-  const bankCode =
-    telebirr.bank_code ??
-    telebirr.code ??
-    telebirr.id;
-
-  if (
-    bankCode === undefined ||
-    bankCode === null ||
-    bankCode === ""
-  ) {
-
-    throw new Error(
-      "Chapa returned Telebirr without a bank code."
-    );
-
-  }
-
-  console.log(
-    "Telebirr bank found:",
-    telebirr
-  );
-
-  return String(
-    bankCode
-  );
-}
-
-/*
-==================================================
-CHAPA PAYMENT CALLBACK
-==================================================
-*/
-
-app.get(
-  "/api/chapa/callback",
-  async (req, res) => {
+    /*
+    ----------------------------------------------
+    SAVE PENDING TRANSACTION
+    ----------------------------------------------
+    */
 
     try {
 
-      if (!CHAPA_SECRET_KEY) {
-
-        return res.status(500).send(
-          "CHAPA_SECRET_KEY is not configured on Render."
-        );
-
-      }
-
-      const txRef =
-        req.query.trx_ref ||
-        req.query.tx_ref ||
-        "";
-
-      const callbackStatus =
-        req.query.status ||
-        "";
-
-      console.log(
-        "CHAPA CALLBACK:",
+      await supabaseRequest(
+        "/rest/v1/transactions",
         {
-          txRef,
-          callbackStatus
+          method: "POST",
+          headers: {
+            Prefer: "return=minimal"
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            amount: amount,
+            type: "deposit",
+            status: "pending",
+            reference: txRef
+          })
         }
       );
 
-      if (!txRef) {
-
-        return res.status(400).send(
-          "Missing Chapa transaction reference."
-        );
-
-      }
-
-      const verifyResponse =
-        await fetch(
-          `https://api.chapa.co/v1/transaction/verify/${encodeURIComponent(txRef)}`,
-          {
-            method: "GET",
-
-            headers: {
-              "Authorization":
-                `Bearer ${CHAPA_SECRET_KEY}`,
-
-              "Accept":
-                "application/json"
-            }
-          }
-        );
-
-      const responseText =
-        await verifyResponse.text();
-
-      let verifyData = {};
-
-      try {
-
-        verifyData =
-          responseText
-            ? JSON.parse(responseText)
-            : {};
-
-      } catch (error) {
-
-        console.error(
-          "CHAPA VERIFY NON-JSON:",
-          responseText
-        );
-
-        return res.status(502).send(
-          "Chapa returned an invalid verification response."
-        );
-
-      }
+    } catch (databaseError) {
 
       console.log(
-        "CHAPA VERIFY STATUS:",
-        verifyResponse.status
-      );
-
-      console.log(
-        "CHAPA VERIFY RESPONSE:",
-        verifyData
-      );
-
-      if (!verifyResponse.ok) {
-
-        return res.status(400).send(
-          getChapaMessage(
-            verifyData
-          )
-        );
-
-      }
-
-      const transaction =
-        verifyData.data ||
-        {};
-
-      const verifiedStatus =
-        String(
-          transaction.status ||
-          verifyData.status ||
-          ""
-        ).toLowerCase();
-
-      if (
-        verifiedStatus === "success"
-      ) {
-
-        console.log(
-          "CHAPA PAYMENT VERIFIED SUCCESSFULLY:",
-          txRef
-        );
-
-        return res.redirect(
-          "/chicken.html?payment=success"
-        );
-
-      }
-
-      console.log(
-        "CHAPA PAYMENT NOT SUCCESSFUL:",
-        {
-          txRef,
-          verifiedStatus
-        }
-      );
-
-      return res.redirect(
-        "/chicken.html?payment=failed"
-      );
-
-    } catch (error) {
-
-      console.error(
-        "CHAPA CALLBACK ERROR:",
-        error
-      );
-
-      return res.status(500).send(
-        error.message ||
-        "Chapa callback server error."
+        "Transaction save warning:",
+        databaseError.message
       );
 
     }
 
-  }
-);
 
-/*
-==================================================
-AUTOMATIC WITHDRAWAL
-==================================================
-*/
+    /*
+    ----------------------------------------------
+    CHAPA INITIALIZATION
+    ----------------------------------------------
+    */
 
-app.post(
-  "/api/withdraw",
-  async (req, res) => {
+    const chapaResponse =
+      await fetch(
+        "https://api.chapa.co/v1/transaction/initialize",
+        {
+          method: "POST",
 
-    try {
+          headers: {
+            Authorization:
+              `Bearer ${CHAPA_SECRET_KEY}`,
 
-      if (!CHAPA_SECRET_KEY) {
+            "Content-Type":
+              "application/json"
+          },
 
-        return res.status(500).json({
+          body: JSON.stringify({
 
-          success: false,
+            amount: amount.toString(),
 
-          message:
-            "CHAPA_SECRET_KEY is not configured on Render."
+            currency: "ETB",
 
-        });
+            email: email,
 
-      }
+            first_name: firstName,
 
-      const {
-        user,
-        error: authError
-      } =
-        await getAuthenticatedUser(req);
+            last_name: lastName,
 
-      if (!user) {
+            tx_ref: txRef,
 
-        return res.status(401).json({
+            callback_url:
+              `${SITE_URL}/api/chapa/callback?tx_ref=${encodeURIComponent(txRef)}`,
 
-          success: false,
+            return_url:
+              `${SITE_URL}/chicken.html`,
 
-          message:
-            authError ||
-            "Authentication failed."
+            customization: {
+              title: "Gutu Game",
+              description: "Gutu Game Deposit"
+            }
 
-        });
-
-      }
-
-      const {
-        amount,
-        accountNumber,
-        method
-      } = req.body;
-
-      const withdrawalAmount =
-        Number(amount);
-
-      const account =
-        String(
-          accountNumber || ""
-        ).trim();
-
-      if (
-        !Number.isFinite(
-          withdrawalAmount
-        )
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Invalid withdrawal amount."
-
-        });
-
-      }
-
-      if (
-        withdrawalAmount < 50
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Minimum withdrawal is 50 ETB."
-
-        });
-
-      }
-
-      if (
-        !account ||
-        account.length < 5
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Please enter a valid Telebirr account number."
-
-        });
-
-      }
-
-      if (
-        method !== "Telebirr"
-      ) {
-
-        return res.status(400).json({
-
-          success: false,
-
-          message:
-            "Automatic withdrawal is currently configured for Telebirr."
-
-        });
-
-      }
-
-      const reference =
-        "GUTU-" +
-        Date.now() +
-        "-" +
-        Math.floor(
-          Math.random() * 1000000
-        );
-
-      const bankCode =
-        await findTelebirrBank();
-
-      const chapaResponse =
-        await fetch(
-          "https://api.chapa.co/v1/transfers",
-          {
-
-            method: "POST",
-
-            headers: {
-
-              "Authorization":
-                `Bearer ${CHAPA_SECRET_KEY}`,
-
-              "Content-Type":
-                "application/json",
-
-              "Accept":
-                "application/json"
-
-            },
-
-            body: JSON.stringify({
-
-              account_number:
-                account,
-
-              amount:
-                withdrawalAmount.toFixed(2),
-
-              currency:
-                "ETB",
-
-              reference:
-                reference,
-
-              bank_code:
-                bankCode
-
-            })
-
-          }
-        );
-
-      const responseText =
-        await chapaResponse.text();
-
-      let chapaData = {};
-
-      try {
-
-        chapaData =
-          responseText
-            ? JSON.parse(responseText)
-            : {};
-
-      } catch (error) {
-
-        return res.status(502).json({
-
-          success: false,
-
-          message:
-            "Chapa returned an invalid transfer response.",
-
-          details:
-            responseText
-
-        });
-
-      }
-
-      console.log(
-        "Chapa transfer status:",
-        chapaResponse.status
+          })
+        }
       );
 
+
+    const chapaText =
+      await chapaResponse.text();
+
+    let chapaData;
+
+    try {
+      chapaData =
+        JSON.parse(chapaText);
+    } catch {
+      chapaData = {
+        raw: chapaText
+      };
+    }
+
+
+    if (!chapaResponse.ok) {
+
       console.log(
-        "Chapa transfer response:",
+        "Chapa error:",
         chapaData
       );
 
-      if (!chapaResponse.ok) {
+      return res.status(500).json({
+        success: false,
+        message: "Chapa could not initialize the payment.",
+        details: chapaData
+      });
 
-        return res.status(
-          chapaResponse.status
-        ).json({
+    }
 
-          success: false,
 
-          message:
-            getChapaMessage(
-              chapaData
-            ),
+    const checkoutUrl =
+      chapaData?.data?.checkout_url;
 
-          reference:
-            reference,
 
-          chapa:
-            chapaData
+    if (!checkoutUrl) {
 
-        });
+      return res.status(500).json({
+        success: false,
+        message: "Chapa did not return a checkout URL.",
+        details: chapaData
+      });
+
+    }
+
+
+    return res.json({
+
+      success: true,
+
+      message:
+        "Payment initialized successfully.",
+
+      checkout_url:
+        checkoutUrl,
+
+      tx_ref:
+        txRef
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "CHAPA INITIALIZE ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Deposit initialization failed.",
+
+      error:
+        error.message
+
+    });
+
+  }
+
+});
+
+
+/*
+==================================================
+CHAPA CALLBACK
+==================================================
+*/
+
+app.get("/api/chapa/callback", async (req, res) => {
+
+  try {
+
+    const txRef =
+      req.query.tx_ref ||
+      req.query.trx_ref;
+
+    if (!txRef) {
+
+      return res.status(400).send(
+        "Missing transaction reference."
+      );
+
+    }
+
+
+    if (!CHAPA_SECRET_KEY) {
+
+      return res.status(500).send(
+        "CHAPA_SECRET_KEY is not configured."
+      );
+
+    }
+
+
+    /*
+    ----------------------------------------------
+    VERIFY PAYMENT WITH CHAPA
+    ----------------------------------------------
+    */
+
+    const verifyResponse =
+      await fetch(
+        `https://api.chapa.co/v1/transaction/verify/${encodeURIComponent(txRef)}`,
+        {
+          method: "GET",
+
+          headers: {
+            Authorization:
+              `Bearer ${CHAPA_SECRET_KEY}`
+          }
+        }
+      );
+
+
+    const verifyText =
+      await verifyResponse.text();
+
+    let verifyData;
+
+    try {
+
+      verifyData =
+        JSON.parse(verifyText);
+
+    } catch {
+
+      verifyData = {
+        raw: verifyText
+      };
+
+    }
+
+
+    if (!verifyResponse.ok) {
+
+      console.log(
+        "Chapa verification failed:",
+        verifyData
+      );
+
+      return res.status(400).send(
+        "Payment verification failed."
+      );
+
+    }
+
+
+    const status =
+      verifyData?.data?.status;
+
+
+    /*
+    ----------------------------------------------
+    PAYMENT SUCCESS
+    ----------------------------------------------
+    */
+
+    if (
+      status === "success" ||
+      status === "completed"
+    ) {
+
+      const transaction =
+        await supabaseRequest(
+          `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}&select=*`,
+          {
+            method: "GET"
+          }
+        );
+
+
+      if (
+        transaction &&
+        transaction.length > 0
+      ) {
+
+        const tx =
+          transaction[0];
+
+        /*
+        ------------------------------------------
+        CHECK IF ALREADY CREDITED
+        ------------------------------------------
+        */
+
+        if (tx.status !== "completed") {
+
+          /*
+          ----------------------------------------
+          UPDATE TRANSACTION
+          ----------------------------------------
+          */
+
+          await supabaseRequest(
+            `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}`,
+            {
+              method: "PATCH",
+
+              headers: {
+                Prefer: "return=minimal"
+              },
+
+              body: JSON.stringify({
+                status: "completed"
+              })
+            }
+          );
+
+
+          /*
+          ----------------------------------------
+          GET USER WALLET
+          ----------------------------------------
+          */
+
+          const wallets =
+            await supabaseRequest(
+              `/rest/v1/wallets?user_id=eq.${encodeURIComponent(tx.user_id)}&select=*`,
+              {
+                method: "GET"
+              }
+            );
+
+
+          if (
+            wallets &&
+            wallets.length > 0
+          ) {
+
+            const wallet =
+              wallets[0];
+
+            const currentBalance =
+              Number(wallet.balance || 0);
+
+            const depositAmount =
+              Number(tx.amount || 0);
+
+            const newBalance =
+              currentBalance +
+              depositAmount;
+
+
+            /*
+            --------------------------------------
+            UPDATE BALANCE
+            --------------------------------------
+            */
+
+            await supabaseRequest(
+              `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
+              {
+                method: "PATCH",
+
+                headers: {
+                  Prefer: "return=minimal"
+                },
+
+                body: JSON.stringify({
+                  balance: newBalance,
+                  updated_at:
+                    new Date().toISOString()
+                })
+              }
+            );
+
+            console.log(
+              `Deposit credited: ${depositAmount} ETB to ${tx.user_id}`
+            );
+
+          } else {
+
+            console.log(
+              "Wallet not found for user:",
+              tx.user_id
+            );
+
+          }
+
+        }
 
       }
 
-      return res.status(200).json({
+    }
+
+
+    /*
+    ----------------------------------------------
+    SEND USER BACK TO GAME
+    ----------------------------------------------
+    */
+
+    return res.redirect(
+      `${SITE_URL}/chicken.html?payment=${encodeURIComponent(status || "unknown")}`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "CHAPA CALLBACK ERROR:",
+      error
+    );
+
+    return res.status(500).send(
+      "Payment callback error."
+    );
+
+  }
+
+});
+
+
+/*
+==================================================
+GET WALLET BALANCE
+==================================================
+*/
+
+app.get("/api/wallet", async (req, res) => {
+
+  try {
+
+    const user =
+      await getUserFromToken(req);
+
+    if (!user) {
+
+      return res.status(401).json({
+        success: false,
+        message: "Please login first."
+      });
+
+    }
+
+
+    const wallets =
+      await supabaseRequest(
+        `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
+        {
+          method: "GET"
+        }
+      );
+
+
+    if (
+      !wallets ||
+      wallets.length === 0
+    ) {
+
+      return res.json({
 
         success: true,
 
-        status:
-          chapaData.status ||
-          "pending",
-
-        message:
-          getChapaMessage(
-            chapaData
-          ),
-
-        reference:
-          reference,
-
-        chapa:
-          chapaData
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "WITHDRAWAL ERROR:",
-        error
-      );
-
-      return res.status(500).json({
-
-        success: false,
-
-        message:
-          error.message ||
-          "Withdrawal server error."
+        balance: 0
 
       });
 
     }
 
+
+    return res.json({
+
+      success: true,
+
+      balance:
+        Number(wallets[0].balance || 0)
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "WALLET ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Could not load wallet.",
+
+      error:
+        error.message
+
+    });
+
   }
+
+});
+
+
+/*
+==================================================
+WITHDRAW
+==================================================
+*/
+
+app.post("/api/withdraw", async (req, res) => {
+
+  try {
+
+    const user =
+      await getUserFromToken(req);
+
+    if (!user) {
+
+      return res.status(401).json({
+        success: false,
+        message: "Please login first."
+      });
+
+    }
+
+
+    const amount =
+      Number(req.body.amount);
+
+    const phone =
+      req.body.phone || "";
+
+
+    if (!amount || amount <= 0) {
+
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid withdrawal amount."
+      });
+
+    }
+
+
+    if (!phone) {
+
+      return res.status(400).json({
+        success: false,
+        message: "Enter your phone number."
+      });
+
+    }
+
+
+    const wallets =
+      await supabaseRequest(
+        `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
+        {
+          method: "GET"
+        }
+      );
+
+
+    if (
+      !wallets ||
+      wallets.length === 0
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message: "Wallet not found."
+      });
+
+    }
+
+
+    const wallet =
+      wallets[0];
+
+    const balance =
+      Number(wallet.balance || 0);
+
+
+    if (amount > balance) {
+
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance."
+      });
+
+    }
+
+
+    /*
+    ----------------------------------------------
+    CREATE WITHDRAWAL REQUEST
+    ----------------------------------------------
+    */
+
+    await supabaseRequest(
+      "/rest/v1/withdrawal_requests",
+      {
+        method: "POST",
+
+        headers: {
+          Prefer: "return=minimal"
+        },
+
+        body: JSON.stringify({
+
+          user_id:
+            user.id,
+
+          amount:
+            amount,
+
+          phone:
+            phone,
+
+          status:
+            "pending"
+
+        })
+      }
+    );
+
+
+    /*
+    ----------------------------------------------
+    RESERVE MONEY
+    ----------------------------------------------
+    */
+
+    await supabaseRequest(
+      `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
+      {
+        method: "PATCH",
+
+        headers: {
+          Prefer: "return=minimal"
+        },
+
+        body: JSON.stringify({
+
+          balance:
+            balance - amount,
+
+          updated_at:
+            new Date().toISOString()
+
+        })
+      }
+    );
+
+
+    return res.json({
+
+      success: true,
+
+      message:
+        "Withdrawal request submitted successfully."
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "WITHDRAW ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Withdrawal failed.",
+
+      error:
+        error.message
+
+    });
+
+  }
+
+});
+
+
+/*
+==================================================
+SERVE GUTU GAME WEBSITE
+==================================================
+*/
+
+const publicPath =
+  path.join(__dirname, "..");
+
+app.use(
+  express.static(publicPath)
 );
+
+
+app.get("/", (req, res) => {
+
+  res.sendFile(
+    path.join(
+      publicPath,
+      "index.html"
+    )
+  );
+
+});
+
 
 /*
 ==================================================
