@@ -20,7 +20,6 @@ const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ||
   "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-
 /*
 ==================================================
 CHAPA
@@ -29,7 +28,6 @@ CHAPA
 
 const CHAPA_SECRET_KEY =
   process.env.CHAPA_SECRET_KEY;
-
 
 /*
 ==================================================
@@ -43,9 +41,7 @@ app.use(
   )
 );
 
-
 app.get("/", (req, res) => {
-
   res.sendFile(
     path.join(
       __dirname,
@@ -53,9 +49,60 @@ app.get("/", (req, res) => {
       "index.html"
     )
   );
-
 });
 
+/*
+==================================================
+HELPER: READ CHAPA ERROR
+==================================================
+*/
+
+function getChapaMessage(data) {
+
+  if (!data) {
+    return "Chapa returned an empty response.";
+  }
+
+  if (typeof data.message === "string") {
+    return data.message;
+  }
+
+  if (
+    data.message &&
+    typeof data.message === "object"
+  ) {
+    try {
+      return JSON.stringify(data.message);
+    } catch (error) {
+      return "Chapa returned an unreadable error message.";
+    }
+  }
+
+  if (typeof data.error === "string") {
+    return data.error;
+  }
+
+  if (
+    data.error &&
+    typeof data.error === "object"
+  ) {
+    try {
+      return JSON.stringify(data.error);
+    } catch (error) {
+      return "Chapa returned an unreadable error.";
+    }
+  }
+
+  if (typeof data.status === "string") {
+    return `Chapa returned status: ${data.status}`;
+  }
+
+  try {
+    return JSON.stringify(data);
+  } catch (error) {
+    return "Unknown Chapa error.";
+  }
+}
 
 /*
 ==================================================
@@ -68,7 +115,6 @@ async function getAuthenticatedUser(req) {
   const authorization =
     req.headers.authorization || "";
 
-
   if (!authorization.startsWith("Bearer ")) {
 
     return {
@@ -78,10 +124,8 @@ async function getAuthenticatedUser(req) {
 
   }
 
-
   const accessToken =
     authorization.substring(7);
-
 
   try {
 
@@ -101,12 +145,15 @@ async function getAuthenticatedUser(req) {
         }
       );
 
-
     const data =
       await response.json();
 
-
     if (!response.ok || !data.id) {
+
+      console.error(
+        "SUPABASE USER ERROR:",
+        data
+      );
 
       return {
         user: null,
@@ -116,12 +163,10 @@ async function getAuthenticatedUser(req) {
 
     }
 
-
     return {
       user: data,
       error: null
     };
-
 
   } catch (error) {
 
@@ -129,7 +174,6 @@ async function getAuthenticatedUser(req) {
       "Supabase authentication error:",
       error
     );
-
 
     return {
       user: null,
@@ -140,7 +184,6 @@ async function getAuthenticatedUser(req) {
   }
 
 }
-
 
 /*
 ==================================================
@@ -162,6 +205,10 @@ app.post(
 
       if (!CHAPA_SECRET_KEY) {
 
+        console.error(
+          "CHAPA_SECRET_KEY is missing."
+        );
+
         return res.status(500).json({
 
           success: false,
@@ -172,7 +219,6 @@ app.post(
         });
 
       }
-
 
       /*
       --------------------------------------------
@@ -185,7 +231,6 @@ app.post(
         error: authError
       } =
         await getAuthenticatedUser(req);
-
 
       if (!user) {
 
@@ -201,7 +246,6 @@ app.post(
 
       }
 
-
       /*
       --------------------------------------------
       GET AMOUNT
@@ -210,7 +254,6 @@ app.post(
 
       const amount =
         Number(req.body.amount);
-
 
       if (
         !Number.isFinite(amount) ||
@@ -228,7 +271,6 @@ app.post(
 
       }
 
-
       /*
       --------------------------------------------
       USER EMAIL
@@ -236,8 +278,9 @@ app.post(
       */
 
       const email =
-        user.email || "";
-
+        String(
+          user.email || ""
+        ).trim();
 
       if (!email) {
 
@@ -252,6 +295,25 @@ app.post(
 
       }
 
+      /*
+      --------------------------------------------
+      USER NAME
+      --------------------------------------------
+      */
+
+      const firstName =
+        String(
+          user.user_metadata?.first_name ||
+          user.user_metadata?.firstName ||
+          "Gutu"
+        ).trim();
+
+      const lastName =
+        String(
+          user.user_metadata?.last_name ||
+          user.user_metadata?.lastName ||
+          "Game"
+        ).trim();
 
       /*
       --------------------------------------------
@@ -267,7 +329,6 @@ app.post(
           Math.random() * 1000000
         );
 
-
       /*
       --------------------------------------------
       WEBSITE URL
@@ -276,7 +337,6 @@ app.post(
 
       const siteUrl =
         "https://gutu-game.onrender.com";
-
 
       /*
       --------------------------------------------
@@ -296,12 +356,10 @@ app.post(
           email,
 
         first_name:
-          user.user_metadata?.first_name ||
-          "Gutu",
+          firstName,
 
         last_name:
-          user.user_metadata?.last_name ||
-          "Game",
+          lastName,
 
         tx_ref:
           txRef,
@@ -324,7 +382,6 @@ app.post(
 
       };
 
-
       console.log(
         "===================================="
       );
@@ -336,7 +393,6 @@ app.post(
       console.log(
         paymentData
       );
-
 
       /*
       --------------------------------------------
@@ -357,6 +413,9 @@ app.post(
                 `Bearer ${CHAPA_SECRET_KEY}`,
 
               "Content-Type":
+                "application/json",
+
+              "Accept":
                 "application/json"
 
             },
@@ -369,22 +428,54 @@ app.post(
           }
         );
 
+      /*
+      --------------------------------------------
+      READ CHAPA RESPONSE SAFELY
+      --------------------------------------------
+      */
 
-      const chapaData =
-        await chapaResponse.json();
+      const responseText =
+        await chapaResponse.text();
 
+      let chapaData = {};
+
+      try {
+
+        chapaData =
+          responseText
+            ? JSON.parse(responseText)
+            : {};
+
+      } catch (parseError) {
+
+        console.error(
+          "CHAPA RETURNED NON-JSON:",
+          responseText
+        );
+
+        return res.status(502).json({
+
+          success: false,
+
+          message:
+            "Chapa returned an invalid response.",
+
+          details:
+            responseText
+
+        });
+
+      }
 
       console.log(
         "CHAPA INITIALIZE STATUS:",
         chapaResponse.status
       );
 
-
       console.log(
         "CHAPA INITIALIZE RESPONSE:",
         chapaData
       );
-
 
       /*
       --------------------------------------------
@@ -397,15 +488,30 @@ app.post(
         chapaData.status !== "success"
       ) {
 
+        const readableMessage =
+          getChapaMessage(
+            chapaData
+          );
+
+        console.error(
+          "CHAPA INITIALIZE FAILED:",
+          readableMessage
+        );
+
         return res.status(
-          chapaResponse.status || 400
+          chapaResponse.status >= 400
+            ? chapaResponse.status
+            : 400
         ).json({
 
           success: false,
 
           message:
-            chapaData.message ||
-            "Chapa could not initialize the payment.",
+            readableMessage,
+
+          status:
+            chapaData.status ||
+            "failed",
 
           chapa:
             chapaData
@@ -413,7 +519,6 @@ app.post(
         });
 
       }
-
 
       /*
       --------------------------------------------
@@ -424,8 +529,12 @@ app.post(
       const checkoutUrl =
         chapaData.data?.checkout_url;
 
-
       if (!checkoutUrl) {
+
+        console.error(
+          "CHAPA DID NOT RETURN CHECKOUT URL:",
+          chapaData
+        );
 
         return res.status(500).json({
 
@@ -441,7 +550,6 @@ app.post(
 
       }
 
-
       /*
       --------------------------------------------
       SUCCESS
@@ -455,7 +563,6 @@ app.post(
       console.log(
         checkoutUrl
       );
-
 
       return res.status(200).json({
 
@@ -472,14 +579,12 @@ app.post(
 
       });
 
-
     } catch (error) {
 
       console.error(
         "CHAPA DEPOSIT ERROR:",
         error
       );
-
 
       return res.status(500).json({
 
@@ -495,7 +600,6 @@ app.post(
 
   }
 );
-
 
 /*
 ==================================================
@@ -513,7 +617,6 @@ async function getChapaBanks() {
 
   }
 
-
   const response =
     await fetch(
       "https://api.chapa.co/v1/banks",
@@ -522,21 +625,38 @@ async function getChapaBanks() {
 
         headers: {
           "Authorization":
-            `Bearer ${CHAPA_SECRET_KEY}`
+            `Bearer ${CHAPA_SECRET_KEY}`,
+
+          "Accept":
+            "application/json"
         }
       }
     );
 
+  const responseText =
+    await response.text();
 
-  const data =
-    await response.json();
+  let data = {};
 
+  try {
+
+    data =
+      responseText
+        ? JSON.parse(responseText)
+        : {};
+
+  } catch (error) {
+
+    throw new Error(
+      "Chapa returned an invalid bank-list response."
+    );
+
+  }
 
   console.log(
     "Chapa bank-list response status:",
     response.status
   );
-
 
   if (!response.ok) {
 
@@ -545,19 +665,14 @@ async function getChapaBanks() {
       data
     );
 
-
     throw new Error(
-      data.message ||
-      "Could not retrieve Chapa bank list."
+      getChapaMessage(data)
     );
 
   }
 
-
   return data;
-
 }
-
 
 /*
 ==================================================
@@ -570,9 +685,7 @@ async function findTelebirrBank() {
   const data =
     await getChapaBanks();
 
-
   let banks = [];
-
 
   if (Array.isArray(data.data)) {
 
@@ -594,7 +707,6 @@ async function findTelebirrBank() {
 
   }
 
-
   const telebirr =
     banks.find((bank) => {
 
@@ -607,13 +719,11 @@ async function findTelebirrBank() {
           ""
         ).toLowerCase();
 
-
       return name.includes(
         "telebirr"
       );
 
     });
-
 
   if (!telebirr) {
 
@@ -622,19 +732,16 @@ async function findTelebirrBank() {
       data
     );
 
-
     throw new Error(
       "Telebirr was not found in Chapa's bank list."
     );
 
   }
 
-
   const bankCode =
     telebirr.bank_code ??
     telebirr.code ??
     telebirr.id;
-
 
   if (
     bankCode === undefined ||
@@ -648,19 +755,15 @@ async function findTelebirrBank() {
 
   }
 
-
   console.log(
     "Telebirr bank found:",
     telebirr
   );
 
-
   return String(
     bankCode
   );
-
 }
-
 
 /*
 ==================================================
@@ -674,12 +777,6 @@ app.get(
 
     try {
 
-      /*
-      --------------------------------------------
-      CHECK CHAPA KEY
-      --------------------------------------------
-      */
-
       if (!CHAPA_SECRET_KEY) {
 
         return res.status(500).send(
@@ -688,23 +785,14 @@ app.get(
 
       }
 
-
-      /*
-      --------------------------------------------
-      GET TRANSACTION REFERENCE
-      --------------------------------------------
-      */
-
       const txRef =
         req.query.trx_ref ||
         req.query.tx_ref ||
         "";
 
-
       const callbackStatus =
         req.query.status ||
         "";
-
 
       console.log(
         "CHAPA CALLBACK:",
@@ -714,7 +802,6 @@ app.get(
         }
       );
 
-
       if (!txRef) {
 
         return res.status(400).send(
@@ -722,13 +809,6 @@ app.get(
         );
 
       }
-
-
-      /*
-      --------------------------------------------
-      VERIFY TRANSACTION
-      --------------------------------------------
-      */
 
       const verifyResponse =
         await fetch(
@@ -738,53 +818,62 @@ app.get(
 
             headers: {
               "Authorization":
-                `Bearer ${CHAPA_SECRET_KEY}`
+                `Bearer ${CHAPA_SECRET_KEY}`,
+
+              "Accept":
+                "application/json"
             }
           }
         );
 
+      const responseText =
+        await verifyResponse.text();
 
-      const verifyData =
-        await verifyResponse.json();
+      let verifyData = {};
 
+      try {
+
+        verifyData =
+          responseText
+            ? JSON.parse(responseText)
+            : {};
+
+      } catch (error) {
+
+        console.error(
+          "CHAPA VERIFY NON-JSON:",
+          responseText
+        );
+
+        return res.status(502).send(
+          "Chapa returned an invalid verification response."
+        );
+
+      }
 
       console.log(
         "CHAPA VERIFY STATUS:",
         verifyResponse.status
       );
 
-
       console.log(
         "CHAPA VERIFY RESPONSE:",
         verifyData
       );
 
-
-      /*
-      --------------------------------------------
-      VERIFY FAILED
-      --------------------------------------------
-      */
-
       if (!verifyResponse.ok) {
 
         return res.status(400).send(
-          "Chapa transaction verification failed."
+          getChapaMessage(
+            verifyData
+          )
         );
 
       }
 
-
-      /*
-      --------------------------------------------
-      GET TRANSACTION
-      --------------------------------------------
-      */
-
       const transaction =
         verifyData.data ||
         {};
-
 
       const verifiedStatus =
         String(
@@ -792,13 +881,6 @@ app.get(
           verifyData.status ||
           ""
         ).toLowerCase();
-
-
-      /*
-      --------------------------------------------
-      PAYMENT SUCCESS
-      --------------------------------------------
-      */
 
       if (
         verifiedStatus === "success"
@@ -809,26 +891,11 @@ app.get(
           txRef
         );
 
-
-        /*
-        IMPORTANT:
-        Wallet crediting is NOT yet connected
-        to this callback.
-        */
-
-
         return res.redirect(
           "/chicken.html?payment=success"
         );
 
       }
-
-
-      /*
-      --------------------------------------------
-      PAYMENT FAILED
-      --------------------------------------------
-      */
 
       console.log(
         "CHAPA PAYMENT NOT SUCCESSFUL:",
@@ -838,11 +905,9 @@ app.get(
         }
       );
 
-
       return res.redirect(
         "/chicken.html?payment=failed"
       );
-
 
     } catch (error) {
 
@@ -851,8 +916,8 @@ app.get(
         error
       );
 
-
       return res.status(500).send(
+        error.message ||
         "Chapa callback server error."
       );
 
@@ -860,7 +925,6 @@ app.get(
 
   }
 );
-
 
 /*
 ==================================================
@@ -873,12 +937,6 @@ app.post(
   async (req, res) => {
 
     try {
-
-      /*
-      --------------------------------------------
-      CHAPA KEY
-      --------------------------------------------
-      */
 
       if (!CHAPA_SECRET_KEY) {
 
@@ -893,19 +951,11 @@ app.post(
 
       }
 
-
-      /*
-      --------------------------------------------
-      AUTHENTICATE USER
-      --------------------------------------------
-      */
-
       const {
         user,
         error: authError
       } =
         await getAuthenticatedUser(req);
-
 
       if (!user) {
 
@@ -921,35 +971,19 @@ app.post(
 
       }
 
-
-      /*
-      --------------------------------------------
-      GET WITHDRAWAL DATA
-      --------------------------------------------
-      */
-
       const {
         amount,
         accountNumber,
         method
       } = req.body;
 
-
       const withdrawalAmount =
         Number(amount);
-
 
       const account =
         String(
           accountNumber || ""
         ).trim();
-
-
-      /*
-      --------------------------------------------
-      VALIDATE AMOUNT
-      --------------------------------------------
-      */
 
       if (
         !Number.isFinite(
@@ -968,7 +1002,6 @@ app.post(
 
       }
 
-
       if (
         withdrawalAmount < 50
       ) {
@@ -983,13 +1016,6 @@ app.post(
         });
 
       }
-
-
-      /*
-      --------------------------------------------
-      VALIDATE ACCOUNT
-      --------------------------------------------
-      */
 
       if (
         !account ||
@@ -1007,13 +1033,6 @@ app.post(
 
       }
 
-
-      /*
-      --------------------------------------------
-      VALIDATE METHOD
-      --------------------------------------------
-      */
-
       if (
         method !== "Telebirr"
       ) {
@@ -1029,13 +1048,6 @@ app.post(
 
       }
 
-
-      /*
-      --------------------------------------------
-      UNIQUE REFERENCE
-      --------------------------------------------
-      */
-
       const reference =
         "GUTU-" +
         Date.now() +
@@ -1044,22 +1056,8 @@ app.post(
           Math.random() * 1000000
         );
 
-
-      /*
-      --------------------------------------------
-      FIND TELEBIRR BANK
-      --------------------------------------------
-      */
-
       const bankCode =
         await findTelebirrBank();
-
-
-      /*
-      --------------------------------------------
-      SEND TRANSFER TO CHAPA
-      --------------------------------------------
-      */
 
       const chapaResponse =
         await fetch(
@@ -1074,6 +1072,9 @@ app.post(
                 `Bearer ${CHAPA_SECRET_KEY}`,
 
               "Content-Type":
+                "application/json",
+
+              "Accept":
                 "application/json"
 
             },
@@ -1100,28 +1101,43 @@ app.post(
           }
         );
 
+      const responseText =
+        await chapaResponse.text();
 
-      const chapaData =
-        await chapaResponse.json();
+      let chapaData = {};
 
+      try {
+
+        chapaData =
+          responseText
+            ? JSON.parse(responseText)
+            : {};
+
+      } catch (error) {
+
+        return res.status(502).json({
+
+          success: false,
+
+          message:
+            "Chapa returned an invalid transfer response.",
+
+          details:
+            responseText
+
+        });
+
+      }
 
       console.log(
         "Chapa transfer status:",
         chapaResponse.status
       );
 
-
       console.log(
         "Chapa transfer response:",
         chapaData
       );
-
-
-      /*
-      --------------------------------------------
-      CHAPA REJECTED
-      --------------------------------------------
-      */
 
       if (!chapaResponse.ok) {
 
@@ -1132,22 +1148,19 @@ app.post(
           success: false,
 
           message:
-            chapaData.message ||
-            "Chapa rejected the transfer.",
+            getChapaMessage(
+              chapaData
+            ),
 
           reference:
-            reference
+            reference,
+
+          chapa:
+            chapaData
 
         });
 
       }
-
-
-      /*
-      --------------------------------------------
-      CHAPA ACCEPTED
-      --------------------------------------------
-      */
 
       return res.status(200).json({
 
@@ -1158,8 +1171,9 @@ app.post(
           "pending",
 
         message:
-          chapaData.message ||
-          "Transfer request accepted by Chapa.",
+          getChapaMessage(
+            chapaData
+          ),
 
         reference:
           reference,
@@ -1169,14 +1183,12 @@ app.post(
 
       });
 
-
     } catch (error) {
 
       console.error(
         "WITHDRAWAL ERROR:",
         error
       );
-
 
       return res.status(500).json({
 
@@ -1193,20 +1205,5 @@ app.post(
   }
 );
 
-
 /*
-==================================================
-START SERVER
-==================================================
-*/
-
-app.listen(
-  PORT,
-  () => {
-
-    console.log(
-      `Gutu-Game running on port ${PORT}`
-    );
-
-  }
-);
+===
