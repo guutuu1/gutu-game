@@ -68,6 +68,7 @@ async function getAuthenticatedUser(req) {
   const authorization =
     req.headers.authorization || "";
 
+
   if (!authorization.startsWith("Bearer ")) {
 
     return {
@@ -129,6 +130,7 @@ async function getAuthenticatedUser(req) {
       error
     );
 
+
     return {
       user: null,
       error:
@@ -138,6 +140,361 @@ async function getAuthenticatedUser(req) {
   }
 
 }
+
+
+/*
+==================================================
+CHAPA DEPOSIT
+==================================================
+*/
+
+app.post(
+  "/api/chapa/initialize",
+  async (req, res) => {
+
+    try {
+
+      /*
+      --------------------------------------------
+      CHECK CHAPA KEY
+      --------------------------------------------
+      */
+
+      if (!CHAPA_SECRET_KEY) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "CHAPA_SECRET_KEY is missing on Render."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      CHECK USER LOGIN
+      --------------------------------------------
+      */
+
+      const {
+        user,
+        error: authError
+      } =
+        await getAuthenticatedUser(req);
+
+
+      if (!user) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          message:
+            authError ||
+            "Please log in first."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      GET AMOUNT
+      --------------------------------------------
+      */
+
+      const amount =
+        Number(req.body.amount);
+
+
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Please enter a valid deposit amount."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      USER EMAIL
+      --------------------------------------------
+      */
+
+      const email =
+        user.email || "";
+
+
+      if (!email) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Your account does not have an email address."
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      UNIQUE TRANSACTION REFERENCE
+      --------------------------------------------
+      */
+
+      const txRef =
+        "GUTU-DEPOSIT-" +
+        Date.now() +
+        "-" +
+        Math.floor(
+          Math.random() * 1000000
+        );
+
+
+      /*
+      --------------------------------------------
+      WEBSITE URL
+      --------------------------------------------
+      */
+
+      const siteUrl =
+        "https://gutu-game.onrender.com";
+
+
+      /*
+      --------------------------------------------
+      CHAPA PAYMENT DATA
+      --------------------------------------------
+      */
+
+      const paymentData = {
+
+        amount:
+          amount.toFixed(2),
+
+        currency:
+          "ETB",
+
+        email:
+          email,
+
+        first_name:
+          user.user_metadata?.first_name ||
+          "Gutu",
+
+        last_name:
+          user.user_metadata?.last_name ||
+          "Game",
+
+        tx_ref:
+          txRef,
+
+        callback_url:
+          `${siteUrl}/api/chapa/callback`,
+
+        return_url:
+          `${siteUrl}/chicken.html?payment=returned`,
+
+        customization: {
+
+          title:
+            "Gutu Game",
+
+          description:
+            "Gutu Game wallet deposit"
+
+        }
+
+      };
+
+
+      console.log(
+        "===================================="
+      );
+
+      console.log(
+        "CHAPA DEPOSIT REQUEST:"
+      );
+
+      console.log(
+        paymentData
+      );
+
+
+      /*
+      --------------------------------------------
+      SEND PAYMENT TO CHAPA
+      --------------------------------------------
+      */
+
+      const chapaResponse =
+        await fetch(
+          "https://api.chapa.co/v1/transaction/initialize",
+          {
+
+            method: "POST",
+
+            headers: {
+
+              "Authorization":
+                `Bearer ${CHAPA_SECRET_KEY}`,
+
+              "Content-Type":
+                "application/json"
+
+            },
+
+            body:
+              JSON.stringify(
+                paymentData
+              )
+
+          }
+        );
+
+
+      const chapaData =
+        await chapaResponse.json();
+
+
+      console.log(
+        "CHAPA INITIALIZE STATUS:",
+        chapaResponse.status
+      );
+
+
+      console.log(
+        "CHAPA INITIALIZE RESPONSE:",
+        chapaData
+      );
+
+
+      /*
+      --------------------------------------------
+      CHAPA ERROR
+      --------------------------------------------
+      */
+
+      if (
+        !chapaResponse.ok ||
+        chapaData.status !== "success"
+      ) {
+
+        return res.status(
+          chapaResponse.status || 400
+        ).json({
+
+          success: false,
+
+          message:
+            chapaData.message ||
+            "Chapa could not initialize the payment.",
+
+          chapa:
+            chapaData
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      GET CHECKOUT URL
+      --------------------------------------------
+      */
+
+      const checkoutUrl =
+        chapaData.data?.checkout_url;
+
+
+      if (!checkoutUrl) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Chapa did not return a checkout URL.",
+
+          chapa:
+            chapaData
+
+        });
+
+      }
+
+
+      /*
+      --------------------------------------------
+      SUCCESS
+      --------------------------------------------
+      */
+
+      console.log(
+        "CHAPA CHECKOUT URL CREATED:"
+      );
+
+      console.log(
+        checkoutUrl
+      );
+
+
+      return res.status(200).json({
+
+        success: true,
+
+        message:
+          "Payment initialized successfully.",
+
+        tx_ref:
+          txRef,
+
+        checkout_url:
+          checkoutUrl
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "CHAPA DEPOSIT ERROR:",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          error.message ||
+          "Chapa deposit server error."
+
+      });
+
+    }
+
+  }
+);
 
 
 /*
@@ -187,6 +544,7 @@ async function getChapaBanks() {
       "Chapa bank-list error:",
       data
     );
+
 
     throw new Error(
       data.message ||
@@ -249,8 +607,9 @@ async function findTelebirrBank() {
           ""
         ).toLowerCase();
 
-      return (
-        name.includes("telebirr")
+
+      return name.includes(
+        "telebirr"
       );
 
     });
@@ -262,6 +621,7 @@ async function findTelebirrBank() {
       "Telebirr was not found.",
       data
     );
+
 
     throw new Error(
       "Telebirr was not found in Chapa's bank list."
@@ -295,7 +655,9 @@ async function findTelebirrBank() {
   );
 
 
-  return String(bankCode);
+  return String(
+    bankCode
+  );
 
 }
 
@@ -303,14 +665,6 @@ async function findTelebirrBank() {
 /*
 ==================================================
 CHAPA PAYMENT CALLBACK
-==================================================
-
-Chapa sends the transaction reference and status
-to this URL after payment.
-
-IMPORTANT:
-We verify the transaction directly with Chapa
-before treating it as successful.
 ==================================================
 */
 
@@ -372,7 +726,7 @@ app.get(
 
       /*
       --------------------------------------------
-      VERIFY TRANSACTION WITH CHAPA
+      VERIFY TRANSACTION
       --------------------------------------------
       */
 
@@ -408,7 +762,7 @@ app.get(
 
       /*
       --------------------------------------------
-      VERIFY REQUEST FAILED
+      VERIFY FAILED
       --------------------------------------------
       */
 
@@ -423,7 +777,7 @@ app.get(
 
       /*
       --------------------------------------------
-      GET VERIFIED TRANSACTION
+      GET TRANSACTION
       --------------------------------------------
       */
 
@@ -458,9 +812,8 @@ app.get(
 
         /*
         IMPORTANT:
-        Wallet crediting will be connected to the
-        user's deposit record in the next step.
-        We do NOT automatically add money here yet.
+        Wallet crediting is NOT yet connected
+        to this callback.
         */
 
 
@@ -473,7 +826,7 @@ app.get(
 
       /*
       --------------------------------------------
-      PAYMENT NOT SUCCESSFUL
+      PAYMENT FAILED
       --------------------------------------------
       */
 
@@ -694,7 +1047,7 @@ app.post(
 
       /*
       --------------------------------------------
-      FIND TELEBIRR BANK CODE
+      FIND TELEBIRR BANK
       --------------------------------------------
       */
 
@@ -766,7 +1119,7 @@ app.post(
 
       /*
       --------------------------------------------
-      CHAPA REJECTED REQUEST
+      CHAPA REJECTED
       --------------------------------------------
       */
 
@@ -792,7 +1145,7 @@ app.post(
 
       /*
       --------------------------------------------
-      CHAPA ACCEPTED / QUEUED
+      CHAPA ACCEPTED
       --------------------------------------------
       */
 
