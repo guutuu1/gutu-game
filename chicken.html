@@ -227,7 +227,8 @@
           window.location.href = data.data.checkout_url;
         } else {
           btn.disabled = false;
-          showStatus("Chapa Error: " + (data.message || "Failed to create payment session"), "error");
+          const message = data.message || (data.data ? JSON.stringify(data.data) : JSON.stringify(data));
+          showStatus("Chapa Error: " + message, "error");
         }
       } catch (err) {
         btn.disabled = false;
@@ -265,4 +266,4 @@
     initSession();
   </script>
 </body>
-        </html>
+</html>
