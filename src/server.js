@@ -197,12 +197,6 @@ app.post(
 
     try {
 
-      /*
-      --------------------------------------------
-      CHECK CHAPA KEY
-      --------------------------------------------
-      */
-
       if (!CHAPA_SECRET_KEY) {
 
         console.error(
@@ -219,12 +213,6 @@ app.post(
         });
 
       }
-
-      /*
-      --------------------------------------------
-      CHECK USER LOGIN
-      --------------------------------------------
-      */
 
       const {
         user,
@@ -246,12 +234,6 @@ app.post(
 
       }
 
-      /*
-      --------------------------------------------
-      GET AMOUNT
-      --------------------------------------------
-      */
-
       const amount =
         Number(req.body.amount);
 
@@ -271,12 +253,6 @@ app.post(
 
       }
 
-      /*
-      --------------------------------------------
-      USER EMAIL
-      --------------------------------------------
-      */
-
       const email =
         String(
           user.email || ""
@@ -295,12 +271,6 @@ app.post(
 
       }
 
-      /*
-      --------------------------------------------
-      USER NAME
-      --------------------------------------------
-      */
-
       const firstName =
         String(
           user.user_metadata?.first_name ||
@@ -315,12 +285,6 @@ app.post(
           "Game"
         ).trim();
 
-      /*
-      --------------------------------------------
-      UNIQUE TRANSACTION REFERENCE
-      --------------------------------------------
-      */
-
       const txRef =
         "GUTU-DEPOSIT-" +
         Date.now() +
@@ -329,20 +293,8 @@ app.post(
           Math.random() * 1000000
         );
 
-      /*
-      --------------------------------------------
-      WEBSITE URL
-      --------------------------------------------
-      */
-
       const siteUrl =
         "https://gutu-game.onrender.com";
-
-      /*
-      --------------------------------------------
-      CHAPA PAYMENT DATA
-      --------------------------------------------
-      */
 
       const paymentData = {
 
@@ -394,12 +346,6 @@ app.post(
         paymentData
       );
 
-      /*
-      --------------------------------------------
-      SEND PAYMENT TO CHAPA
-      --------------------------------------------
-      */
-
       const chapaResponse =
         await fetch(
           "https://api.chapa.co/v1/transaction/initialize",
@@ -427,12 +373,6 @@ app.post(
 
           }
         );
-
-      /*
-      --------------------------------------------
-      READ CHAPA RESPONSE SAFELY
-      --------------------------------------------
-      */
 
       const responseText =
         await chapaResponse.text();
@@ -477,12 +417,6 @@ app.post(
         chapaData
       );
 
-      /*
-      --------------------------------------------
-      CHAPA ERROR
-      --------------------------------------------
-      */
-
       if (
         !chapaResponse.ok ||
         chapaData.status !== "success"
@@ -520,12 +454,6 @@ app.post(
 
       }
 
-      /*
-      --------------------------------------------
-      GET CHECKOUT URL
-      --------------------------------------------
-      */
-
       const checkoutUrl =
         chapaData.data?.checkout_url;
 
@@ -549,12 +477,6 @@ app.post(
         });
 
       }
-
-      /*
-      --------------------------------------------
-      SUCCESS
-      --------------------------------------------
-      */
 
       console.log(
         "CHAPA CHECKOUT URL CREATED:"
@@ -1206,4 +1128,19 @@ app.post(
 );
 
 /*
-===
+==================================================
+START SERVER
+==================================================
+*/
+
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+
+    console.log(
+      `Gutu-Game running on port ${PORT}`
+    );
+
+  }
+);
