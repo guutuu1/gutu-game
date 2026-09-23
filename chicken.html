@@ -1193,4 +1193,45 @@
           "error"
         );
 
+      } else {
+
+        showStatus(
+          "✅ Withdrawal requested! Admin will review shortly.",
+          "success"
+        );
+
+
+        await fetchBalance();
+
       }
+
+    }
+
+
+    /*
+    ==================================================
+    LOG OUT
+    ==================================================
+    */
+
+    async function logOut() {
+
+      await supabaseClient.auth.signOut();
+
+      window.location.reload();
+
+    }
+
+
+    /*
+    ==================================================
+    START
+    ==================================================
+    */
+
+    initSession();
+
+  </script>
+
+</body>
+  </html>
