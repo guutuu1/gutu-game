@@ -31,13 +31,11 @@
 <body>
 
   <div class="container">
-    <!-- Header -->
     <div class="header">
       <h2>🐔 Gutu Game</h2>
       <div class="balance">Balance: <span id="userBalance">0.00</span> ETB</div>
     </div>
 
-    <!-- Gameplay View -->
     <div class="multiplier-display" id="multiplier">1.00x</div>
     
     <div id="gameControls">
@@ -50,7 +48,6 @@
 
     <hr style="border-color: #334155; margin: 25px 0;" />
 
-    <!-- Wallet & Payments Section -->
     <h3>💳 Wallet & Payments</h3>
     
     <div class="tab-group">
@@ -58,14 +55,12 @@
       <button class="tab-btn" id="tabWithdraw" onclick="switchTab('withdraw')">Withdraw</button>
     </div>
 
-    <!-- Deposit Form -->
     <div id="depositForm">
       <label>Amount (ETB):</label>
       <input type="number" id="depositAmount" value="50" min="10" />
       <button class="btn btn-primary" id="depositBtn" onclick="processDeposit()">DEPOSIT VIA CHAPA</button>
     </div>
 
-    <!-- Withdrawal Form -->
     <div id="withdrawForm" class="hidden">
       <label>Amount (ETB):</label>
       <input type="number" id="withdrawAmount" value="50" min="10" />
@@ -89,10 +84,8 @@
   </div>
 
   <script>
-    // Configuration Credentials
     const SUPABASE_URL = "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-    const CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-5hnHmWVNB";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -101,7 +94,6 @@
     let isPlaying = false;
     let currentUser = null;
 
-    // Initialize session
     async function initSession() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
@@ -146,7 +138,6 @@
       box.classList.remove('hidden');
     }
 
-    // Gameplay logic
     async function startGame() {
       const bet = parseFloat(document.getElementById('betAmount').value);
       if (isNaN(bet) || bet <= 0) return showStatus("Enter a valid bet amount.", "error");
@@ -205,41 +196,53 @@
       document.getElementById('cashoutBtn').classList.add('hidden');
     }
 
-    // Direct Hosted Chapa Checkout
-    function processDeposit() {
+    async function processDeposit() {
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (isNaN(amount) || amount < 10) return showStatus("Minimum deposit is 10 ETB.", "error");
 
-      showStatus("Redirecting to Chapa...", "success");
+      const btn = document.getElementById('depositBtn');
+      btn.disabled = true;
+      showStatus("Initializing secure Chapa payment...", "success");
 
-      const txRef = "tx-gutu-" + Date.now();
       const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
       const returnUrl = window.location.origin + window.location.pathname + "?status=success&amount=" + amount;
 
-      // Construct direct hosted checkout URL
-      const chapaUrl = "https://checkout.chapa.co/checkout/web/payment/" + 
-        "?public_key=" + encodeURIComponent(CHAPA_PUBLIC_KEY) +
-        "&tx_ref=" + encodeURIComponent(txRef) +
-        "&amount=" + encodeURIComponent(amount) +
-        "&currency=ETB" +
-        "&email=" + encodeURIComponent(userEmail) +
-        "&first_name=Gutu" +
-        "&last_name=Player" +
-        "&title=" + encodeURIComponent("Gutu Game Deposit") +
-        "&return_url=" + encodeURIComponent(returnUrl);
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/chapa-pay`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({
+            amount: amount,
+            email: userEmail,
+            return_url: returnUrl
+          })
+        });
 
-      // Immediate browser navigation
-      window.location.href = chapaUrl;
+        const data = await response.json();
+
+        if (data && data.status === "success" && data.data && data.data.checkout_url) {
+          showStatus("Redirecting to Chapa...", "success");
+          window.location.href = data.data.checkout_url;
+        } else {
+          btn.disabled = false;
+          showStatus("Chapa Error: " + (data.message || "Failed to generate session."), "error");
+        }
+      } catch (err) {
+        btn.disabled = false;
+        showStatus("Network Error: " + err.message, "error");
+      }
     }
 
-    // Handle Return from Payment Page
     async function handlePaymentReturn() {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get('status');
       const amount = parseFloat(urlParams.get('amount'));
 
       if (status === 'success' && !isNaN(amount) && currentUser) {
-        showStatus("Processing successful deposit of " + amount + " ETB...", "success");
+        showStatus("Processing deposit of " + amount + " ETB...", "success");
         await supabaseClient.rpc('increment_balance', {
           p_user_id: currentUser.id,
           p_amount: amount
@@ -249,7 +252,6 @@
       }
     }
 
-    // Withdrawal Logic
     async function processWithdrawal() {
       const amount = parseFloat(document.getElementById('withdrawAmount').value);
       const account = document.getElementById('withdrawAccount').value.trim();
@@ -280,4 +282,4 @@
     initSession().then(handlePaymentReturn);
   </script>
 </body>
-  </html>
+                                                                       </html>
