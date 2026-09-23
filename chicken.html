@@ -126,8 +126,8 @@
       } else {
         document.getElementById('depositForm').classList.add('hidden');
         document.getElementById('withdrawForm').classList.remove('hidden');
-        document.getElementById('tabWithdraw').classList.remove('active');
-        document.getElementById('tabDeposit').classList.add('active');
+        document.getElementById('tabWithdraw').classList.add('active');
+        document.getElementById('tabDeposit').classList.remove('active');
       }
     }
 
@@ -222,12 +222,13 @@
 
         const data = await response.json();
 
-        if (data && data.status === "success" && data.data && data.data.checkout_url) {
+        if (response.ok && data && data.status === "success" && data.data && data.data.checkout_url) {
           showStatus("Redirecting to Chapa Payment Page...", "success");
           window.location.href = data.data.checkout_url;
         } else {
           btn.disabled = false;
-          showStatus("Chapa Error: " + (data.message || JSON.stringify(data)), "error");
+          const errorMsg = data.message || (data.data ? JSON.stringify(data.data) : JSON.stringify(data));
+          showStatus("Chapa Error: " + errorMsg, "error");
         }
       } catch (err) {
         btn.disabled = false;
@@ -293,4 +294,4 @@
     startApp();
   </script>
 </body>
-  </html>
+</html>
