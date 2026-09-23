@@ -205,7 +205,7 @@
       showStatus("Connecting to Chapa...", "success");
 
       const userEmail = (currentUser && currentUser.email) ? currentUser.email : "player@gutu.com";
-      const returnUrl = window.location.origin + window.location.pathname + "?status=success&amount=" + amount;
+      const returnUrl = window.location.origin + window.location.pathname;
 
       try {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/bright-responder`, {
@@ -222,40 +222,16 @@
 
         const data = await response.json();
 
-        if (response.ok && data && data.status === "success" && data.data && data.data.checkout_url) {
+        if (data && data.status === "success" && data.data && data.data.checkout_url) {
           showStatus("Redirecting to Chapa Payment Page...", "success");
           window.location.href = data.data.checkout_url;
         } else {
           btn.disabled = false;
-          const errorMsg = data.message || (data.data ? JSON.stringify(data.data) : JSON.stringify(data));
-          showStatus("Chapa Error: " + errorMsg, "error");
+          showStatus("Chapa Error: " + (data.message || "Failed to create payment session"), "error");
         }
       } catch (err) {
         btn.disabled = false;
         showStatus("Connection Error: " + err.message, "error");
-      }
-    }
-
-    async function handlePaymentReturn() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('status');
-      const amount = parseFloat(urlParams.get('amount'));
-
-      if (status === 'success' && !isNaN(amount) && currentUser) {
-        showStatus("Processing deposit of " + amount + " ETB...", "success");
-        const { error } = await supabaseClient.rpc('increment_balance', {
-          p_user_id: currentUser.id,
-          p_amount: amount
-        });
-
-        if (!error) {
-          showStatus("Deposit of " + amount + " ETB successfully added!", "success");
-        } else {
-          showStatus("Deposit update error: " + error.message, "error");
-        }
-
-        window.history.replaceState({}, document.title, window.location.pathname);
-        await fetchBalance();
       }
     }
 
@@ -286,12 +262,7 @@
       window.location.reload();
     }
 
-    async function startApp() {
-      await initSession();
-      await handlePaymentReturn();
-    }
-
-    startApp();
+    initSession();
   </script>
 </body>
-</html>
+        </html>
