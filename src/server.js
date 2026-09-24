@@ -45,14 +45,23 @@ SUPABASE REQUEST HELPER
 */
 
 async function supabaseRequest(endpoint, options = {}) {
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not configured."
+    );
+  }
+
   const response = await fetch(
     `${SUPABASE_URL}${endpoint}`,
     {
       ...options,
+
       headers: {
         "Content-Type": "application/json",
 
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        apikey:
+          SUPABASE_SERVICE_ROLE_KEY,
 
         Authorization:
           `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -62,25 +71,36 @@ async function supabaseRequest(endpoint, options = {}) {
     }
   );
 
-  const text = await response.text();
+  const text =
+    await response.text();
 
   let data;
 
   try {
-    data = text ? JSON.parse(text) : null;
+
+    data =
+      text
+        ? JSON.parse(text)
+        : null;
+
   } catch {
+
     data = text;
+
   }
 
   if (!response.ok) {
+
     throw new Error(
       typeof data === "string"
         ? data
         : JSON.stringify(data)
     );
+
   }
 
   return data;
+
 }
 
 
@@ -95,33 +115,51 @@ async function getUserFromToken(req) {
   const authHeader =
     req.headers.authorization || "";
 
-  if (!authHeader.startsWith("Bearer ")) {
+  if (
+    !authHeader.startsWith(
+      "Bearer "
+    )
+  ) {
+
     return null;
+
   }
 
   const token =
     authHeader.substring(7);
 
   if (!token) {
+
     return null;
+
   }
 
-  const response = await fetch(
-    `${SUPABASE_URL}/auth/v1/user`,
-    {
-      method: "GET",
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${token}`
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/auth/v1/user`,
+      {
+        method: "GET",
+
+        headers: {
+
+          apikey:
+            SUPABASE_ANON_KEY,
+
+          Authorization:
+            `Bearer ${token}`
+
+        }
       }
-    }
-  );
+    );
 
   if (!response.ok) {
+
     return null;
+
   }
 
   return await response.json();
+
 }
 
 
@@ -131,15 +169,24 @@ HEALTH CHECK
 ==================================================
 */
 
-app.get("/health", (req, res) => {
+app.get(
+  "/health",
+  (req, res) => {
 
-  res.json({
-    success: true,
-    message: "Gutu Game server is running",
-    port: PORT
-  });
+    res.json({
 
-});
+      success: true,
+
+      message:
+        "Gutu Game server is running",
+
+      port:
+        PORT
+
+    });
+
+  }
+);
 
 
 /*
@@ -148,221 +195,320 @@ CHAPA DEPOSIT
 ==================================================
 */
 
-app.post("/api/chapa/initialize", async (req, res) => {
-
-  try {
-
-    if (!CHAPA_SECRET_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: "CHAPA_SECRET_KEY is not configured."
-      });
-    }
-
-    const user =
-      await getUserFromToken(req);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Please login first."
-      });
-    }
-
-    const amount =
-      Number(req.body.amount);
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Enter a valid deposit amount."
-      });
-    }
-
-    const txRef =
-      `GUTU-${user.id}-${Date.now()}`;
-
-    const firstName =
-      user.user_metadata?.first_name ||
-      user.user_metadata?.name ||
-      "Gutu";
-
-    const lastName =
-      user.user_metadata?.last_name ||
-      "Game";
-
-    const email =
-      user.email;
-
-    /*
-    ----------------------------------------------
-    SAVE PENDING TRANSACTION
-    ----------------------------------------------
-    */
+app.post(
+  "/api/chapa/initialize",
+  async (req, res) => {
 
     try {
 
-      await supabaseRequest(
-        "/rest/v1/transactions",
-        {
-          method: "POST",
-          headers: {
-            Prefer: "return=minimal"
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            amount: amount,
-            type: "deposit",
-            status: "pending",
-            reference: txRef
-          })
-        }
-      );
+      if (!CHAPA_SECRET_KEY) {
 
-    } catch (databaseError) {
+        return res.status(500).json({
 
-      console.log(
-        "Transaction save warning:",
-        databaseError.message
-      );
+          success: false,
 
-    }
+          message:
+            "CHAPA_SECRET_KEY is not configured."
 
+        });
 
-    /*
-    ----------------------------------------------
-    CHAPA INITIALIZATION
-    ----------------------------------------------
-    */
+      }
 
-    const chapaResponse =
-      await fetch(
-        "https://api.chapa.co/v1/transaction/initialize",
-        {
-          method: "POST",
+      const user =
+        await getUserFromToken(req);
 
-          headers: {
-            Authorization:
-              `Bearer ${CHAPA_SECRET_KEY}`,
+      if (!user) {
 
-            "Content-Type":
-              "application/json"
-          },
+        return res.status(401).json({
 
-          body: JSON.stringify({
+          success: false,
 
-            amount: amount.toString(),
+          message:
+            "Please login first."
 
-            currency: "ETB",
+        });
 
-            email: email,
+      }
 
-            first_name: firstName,
+      const amount =
+        Number(req.body.amount);
 
-            last_name: lastName,
+      if (
+        !amount ||
+        amount <= 0
+      ) {
 
-            tx_ref: txRef,
+        return res.status(400).json({
 
-            callback_url:
-              `${SITE_URL}/api/chapa/callback?tx_ref=${encodeURIComponent(txRef)}`,
+          success: false,
 
-            return_url:
-              `${SITE_URL}/chicken.html`,
+          message:
+            "Enter a valid deposit amount."
 
-            customization: {
-              title: "Gutu Game",
-              description: "Gutu Game Deposit"
-            }
+        });
 
-          })
-        }
-      );
+      }
+
+      /*
+      Chapa tx_ref must not exceed 50 characters.
+      */
+
+      const txRef =
+        `GUTU-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+
+      const firstName =
+        user.user_metadata?.first_name ||
+        user.user_metadata?.name ||
+        "Gutu";
+
+      const lastName =
+        user.user_metadata?.last_name ||
+        "Game";
+
+      const email =
+        user.email;
 
 
-    const chapaText =
-      await chapaResponse.text();
+      /*
+      ----------------------------------------------
+      SAVE PENDING TRANSACTION
+      ----------------------------------------------
+      */
 
-    let chapaData;
+      try {
 
-    try {
-      chapaData =
-        JSON.parse(chapaText);
-    } catch {
-      chapaData = {
-        raw: chapaText
-      };
-    }
+        await supabaseRequest(
+          "/rest/v1/transactions",
+          {
+
+            method: "POST",
+
+            headers: {
+
+              Prefer:
+                "return=minimal"
+
+            },
+
+            body:
+              JSON.stringify({
+
+                user_id:
+                  user.id,
+
+                amount:
+                  amount,
+
+                type:
+                  "deposit",
+
+                status:
+                  "pending",
+
+                reference:
+                  txRef
+
+              })
+
+          }
+        );
+
+      } catch (databaseError) {
+
+        console.error(
+          "Transaction save error:",
+          databaseError.message
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Could not save the transaction.",
+
+          error:
+            databaseError.message
+
+        });
+
+      }
 
 
-    if (!chapaResponse.ok) {
+      /*
+      ----------------------------------------------
+      CHAPA INITIALIZATION
+      ----------------------------------------------
+      */
 
-      console.log(
-        "Chapa error:",
-        chapaData
+      const chapaResponse =
+        await fetch(
+          "https://api.chapa.co/v1/transaction/initialize",
+          {
+
+            method: "POST",
+
+            headers: {
+
+              Authorization:
+                `Bearer ${CHAPA_SECRET_KEY}`,
+
+              "Content-Type":
+                "application/json"
+
+            },
+
+            body:
+              JSON.stringify({
+
+                amount:
+                  amount.toString(),
+
+                currency:
+                  "ETB",
+
+                email:
+                  email,
+
+                first_name:
+                  firstName,
+
+                last_name:
+                  lastName,
+
+                tx_ref:
+                  txRef,
+
+                callback_url:
+                  `${SITE_URL}/api/chapa/callback?tx_ref=${encodeURIComponent(txRef)}`,
+
+                return_url:
+                  `${SITE_URL}/chicken.html`,
+
+                customization: {
+
+                  title:
+                    "Gutu Game",
+
+                  description:
+                    "Gutu Game Deposit"
+
+                }
+
+              })
+
+          }
+        );
+
+
+      const chapaText =
+        await chapaResponse.text();
+
+      let chapaData;
+
+      try {
+
+        chapaData =
+          JSON.parse(chapaText);
+
+      } catch {
+
+        chapaData = {
+
+          raw:
+            chapaText
+
+        };
+
+      }
+
+
+      if (!chapaResponse.ok) {
+
+        console.error(
+          "Chapa error:",
+          chapaData
+        );
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Chapa could not initialize the payment.",
+
+          details:
+            chapaData
+
+        });
+
+      }
+
+
+      const checkoutUrl =
+        chapaData?.data?.checkout_url;
+
+
+      if (!checkoutUrl) {
+
+        return res.status(500).json({
+
+          success: false,
+
+          message:
+            "Chapa did not return a checkout URL.",
+
+          details:
+            chapaData
+
+        });
+
+      }
+
+
+      return res.json({
+
+        success:
+          true,
+
+        message:
+          "Payment initialized successfully.",
+
+        checkout_url:
+          checkoutUrl,
+
+        tx_ref:
+          txRef
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "CHAPA INITIALIZE ERROR:",
+        error
       );
 
       return res.status(500).json({
-        success: false,
-        message: "Chapa could not initialize the payment.",
-        details: chapaData
+
+        success:
+          false,
+
+        message:
+          "Deposit initialization failed.",
+
+        error:
+          error.message
+
       });
 
     }
-
-
-    const checkoutUrl =
-      chapaData?.data?.checkout_url;
-
-
-    if (!checkoutUrl) {
-
-      return res.status(500).json({
-        success: false,
-        message: "Chapa did not return a checkout URL.",
-        details: chapaData
-      });
-
-    }
-
-
-    return res.json({
-
-      success: true,
-
-      message:
-        "Payment initialized successfully.",
-
-      checkout_url:
-        checkoutUrl,
-
-      tx_ref:
-        txRef
-
-    });
-
-
-  } catch (error) {
-
-    console.error(
-      "CHAPA INITIALIZE ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-
-      success: false,
-
-      message:
-        "Deposit initialization failed.",
-
-      error:
-        error.message
-
-    });
 
   }
-
-});
+);
 
 
 /*
@@ -371,214 +517,224 @@ CHAPA CALLBACK
 ==================================================
 */
 
-app.get("/api/chapa/callback", async (req, res) => {
-
-  try {
-
-    const txRef =
-      req.query.tx_ref ||
-      req.query.trx_ref;
-
-    if (!txRef) {
-
-      return res.status(400).send(
-        "Missing transaction reference."
-      );
-
-    }
-
-
-    if (!CHAPA_SECRET_KEY) {
-
-      return res.status(500).send(
-        "CHAPA_SECRET_KEY is not configured."
-      );
-
-    }
-
-
-    /*
-    ----------------------------------------------
-    VERIFY PAYMENT WITH CHAPA
-    ----------------------------------------------
-    */
-
-    const verifyResponse =
-      await fetch(
-        `https://api.chapa.co/v1/transaction/verify/${encodeURIComponent(txRef)}`,
-        {
-          method: "GET",
-
-          headers: {
-            Authorization:
-              `Bearer ${CHAPA_SECRET_KEY}`
-          }
-        }
-      );
-
-
-    const verifyText =
-      await verifyResponse.text();
-
-    let verifyData;
+app.get(
+  "/api/chapa/callback",
+  async (req, res) => {
 
     try {
 
-      verifyData =
-        JSON.parse(verifyText);
-
-    } catch {
-
-      verifyData = {
-        raw: verifyText
-      };
-
-    }
+      const txRef =
+        req.query.tx_ref ||
+        req.query.trx_ref;
 
 
-    if (!verifyResponse.ok) {
+      if (!txRef) {
 
-      console.log(
-        "Chapa verification failed:",
-        verifyData
-      );
+        return res.status(400).send(
+          "Missing transaction reference."
+        );
 
-      return res.status(400).send(
-        "Payment verification failed."
-      );
-
-    }
+      }
 
 
-    const status =
-      verifyData?.data?.status;
+      if (!CHAPA_SECRET_KEY) {
+
+        return res.status(500).send(
+          "CHAPA_SECRET_KEY is not configured."
+        );
+
+      }
 
 
-    /*
-    ----------------------------------------------
-    PAYMENT SUCCESS
-    ----------------------------------------------
-    */
-
-    if (
-      status === "success" ||
-      status === "completed"
-    ) {
-
-      const transaction =
-        await supabaseRequest(
-          `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}&select=*`,
+      const verifyResponse =
+        await fetch(
+          `https://api.chapa.co/v1/transaction/verify/${encodeURIComponent(txRef)}`,
           {
-            method: "GET"
+
+            method:
+              "GET",
+
+            headers: {
+
+              Authorization:
+                `Bearer ${CHAPA_SECRET_KEY}`
+
+            }
+
           }
         );
 
 
+      const verifyText =
+        await verifyResponse.text();
+
+      let verifyData;
+
+      try {
+
+        verifyData =
+          JSON.parse(verifyText);
+
+      } catch {
+
+        verifyData = {
+
+          raw:
+            verifyText
+
+        };
+
+      }
+
+
+      if (!verifyResponse.ok) {
+
+        console.error(
+          "Chapa verification failed:",
+          verifyData
+        );
+
+        return res.status(400).send(
+          "Payment verification failed."
+        );
+
+      }
+
+
+      const status =
+        verifyData?.data?.status;
+
+
       if (
-        transaction &&
-        transaction.length > 0
+        status === "success" ||
+        status === "completed"
       ) {
 
-        const tx =
-          transaction[0];
-
-        /*
-        ------------------------------------------
-        CHECK IF ALREADY CREDITED
-        ------------------------------------------
-        */
-
-        if (tx.status !== "completed") {
-
-          /*
-          ----------------------------------------
-          UPDATE TRANSACTION
-          ----------------------------------------
-          */
-
+        const transaction =
           await supabaseRequest(
-            `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}`,
+            `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}&select=*`,
             {
-              method: "PATCH",
-
-              headers: {
-                Prefer: "return=minimal"
-              },
-
-              body: JSON.stringify({
-                status: "completed"
-              })
+              method:
+                "GET"
             }
           );
 
 
-          /*
-          ----------------------------------------
-          GET USER WALLET
-          ----------------------------------------
-          */
+        if (
+          transaction &&
+          transaction.length > 0
+        ) {
 
-          const wallets =
-            await supabaseRequest(
-              `/rest/v1/wallets?user_id=eq.${encodeURIComponent(tx.user_id)}&select=*`,
-              {
-                method: "GET"
-              }
-            );
+          const tx =
+            transaction[0];
 
 
           if (
-            wallets &&
-            wallets.length > 0
+            tx.status !==
+            "completed"
           ) {
 
-            const wallet =
-              wallets[0];
-
-            const currentBalance =
-              Number(wallet.balance || 0);
-
-            const depositAmount =
-              Number(tx.amount || 0);
-
-            const newBalance =
-              currentBalance +
-              depositAmount;
-
-
-            /*
-            --------------------------------------
-            UPDATE BALANCE
-            --------------------------------------
-            */
-
             await supabaseRequest(
-              `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
+              `/rest/v1/transactions?reference=eq.${encodeURIComponent(txRef)}`,
               {
-                method: "PATCH",
+
+                method:
+                  "PATCH",
 
                 headers: {
-                  Prefer: "return=minimal"
+
+                  Prefer:
+                    "return=minimal"
+
                 },
 
-                body: JSON.stringify({
-                  balance: newBalance,
-                  updated_at:
-                    new Date().toISOString()
-                })
+                body:
+                  JSON.stringify({
+
+                    status:
+                      "completed"
+
+                  })
+
               }
             );
 
-            console.log(
-              `Deposit credited: ${depositAmount} ETB to ${tx.user_id}`
-            );
 
-          } else {
+            const wallets =
+              await supabaseRequest(
+                `/rest/v1/wallets?user_id=eq.${encodeURIComponent(tx.user_id)}&select=*`,
+                {
+                  method:
+                    "GET"
+                }
+              );
 
-            console.log(
-              "Wallet not found for user:",
-              tx.user_id
-            );
+
+            if (
+              wallets &&
+              wallets.length > 0
+            ) {
+
+              const wallet =
+                wallets[0];
+
+              const currentBalance =
+                Number(
+                  wallet.balance || 0
+                );
+
+              const depositAmount =
+                Number(
+                  tx.amount || 0
+                );
+
+              const newBalance =
+                currentBalance +
+                depositAmount;
+
+
+              await supabaseRequest(
+                `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
+                {
+
+                  method:
+                    "PATCH",
+
+                  headers: {
+
+                    Prefer:
+                      "return=minimal"
+
+                  },
+
+                  body:
+                    JSON.stringify({
+
+                      balance:
+                        newBalance,
+
+                      updated_at:
+                        new Date()
+                          .toISOString()
+
+                    })
+
+                }
+              );
+
+
+              console.log(
+                `Deposit credited: ${depositAmount} ETB to ${tx.user_id}`
+              );
+
+            } else {
+
+              console.log(
+                "Wallet not found for user:",
+                tx.user_id
+              );
+
+            }
 
           }
 
@@ -586,34 +742,27 @@ app.get("/api/chapa/callback", async (req, res) => {
 
       }
 
+
+      return res.redirect(
+        `${SITE_URL}/chicken.html?payment=${encodeURIComponent(status || "unknown")}`
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "CHAPA CALLBACK ERROR:",
+        error
+      );
+
+      return res.status(500).send(
+        "Payment callback error."
+      );
+
     }
 
-
-    /*
-    ----------------------------------------------
-    SEND USER BACK TO GAME
-    ----------------------------------------------
-    */
-
-    return res.redirect(
-      `${SITE_URL}/chicken.html?payment=${encodeURIComponent(status || "unknown")}`
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "CHAPA CALLBACK ERROR:",
-      error
-    );
-
-    return res.status(500).send(
-      "Payment callback error."
-    );
-
   }
-
-});
+);
 
 
 /*
@@ -622,80 +771,98 @@ GET WALLET BALANCE
 ==================================================
 */
 
-app.get("/api/wallet", async (req, res) => {
+app.get(
+  "/api/wallet",
+  async (req, res) => {
 
-  try {
+    try {
 
-    const user =
-      await getUserFromToken(req);
-
-    if (!user) {
-
-      return res.status(401).json({
-        success: false,
-        message: "Please login first."
-      });
-
-    }
+      const user =
+        await getUserFromToken(req);
 
 
-    const wallets =
-      await supabaseRequest(
-        `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
-        {
-          method: "GET"
-        }
-      );
+      if (!user) {
+
+        return res.status(401).json({
+
+          success:
+            false,
+
+          message:
+            "Please login first."
+
+        });
+
+      }
 
 
-    if (
-      !wallets ||
-      wallets.length === 0
-    ) {
+      const wallets =
+        await supabaseRequest(
+          `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
+          {
+
+            method:
+              "GET"
+
+          }
+        );
+
+
+      if (
+        !wallets ||
+        wallets.length === 0
+      ) {
+
+        return res.json({
+
+          success:
+            true,
+
+          balance:
+            0
+
+        });
+
+      }
+
 
       return res.json({
 
-        success: true,
+        success:
+          true,
 
-        balance: 0
+        balance:
+          Number(
+            wallets[0].balance || 0
+          )
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "WALLET ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success:
+          false,
+
+        message:
+          "Could not load wallet.",
+
+        error:
+          error.message
 
       });
 
     }
 
-
-    return res.json({
-
-      success: true,
-
-      balance:
-        Number(wallets[0].balance || 0)
-
-    });
-
-
-  } catch (error) {
-
-    console.error(
-      "WALLET ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-
-      success: false,
-
-      message:
-        "Could not load wallet.",
-
-      error:
-        error.message
-
-    });
-
   }
-
-});
+);
 
 
 /*
@@ -704,183 +871,228 @@ WITHDRAW
 ==================================================
 */
 
-app.post("/api/withdraw", async (req, res) => {
+app.post(
+  "/api/withdraw",
+  async (req, res) => {
 
-  try {
+    try {
 
-    const user =
-      await getUserFromToken(req);
-
-    if (!user) {
-
-      return res.status(401).json({
-        success: false,
-        message: "Please login first."
-      });
-
-    }
+      const user =
+        await getUserFromToken(req);
 
 
-    const amount =
-      Number(req.body.amount);
+      if (!user) {
 
-    const phone =
-      req.body.phone || "";
+        return res.status(401).json({
 
+          success:
+            false,
 
-    if (!amount || amount <= 0) {
+          message:
+            "Please login first."
 
-      return res.status(400).json({
-        success: false,
-        message: "Enter a valid withdrawal amount."
-      });
+        });
 
-    }
+      }
 
 
-    if (!phone) {
+      const amount =
+        Number(req.body.amount);
 
-      return res.status(400).json({
-        success: false,
-        message: "Enter your phone number."
-      });
-
-    }
+      const phone =
+        req.body.phone || "";
 
 
-    const wallets =
+      if (
+        !amount ||
+        amount <= 0
+      ) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          message:
+            "Enter a valid withdrawal amount."
+
+        });
+
+      }
+
+
+      if (!phone) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          message:
+            "Enter your phone number."
+
+        });
+
+      }
+
+
+      const wallets =
+        await supabaseRequest(
+          `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
+          {
+
+            method:
+              "GET"
+
+          }
+        );
+
+
+      if (
+        !wallets ||
+        wallets.length === 0
+      ) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          message:
+            "Wallet not found."
+
+        });
+
+      }
+
+
+      const wallet =
+        wallets[0];
+
+      const balance =
+        Number(
+          wallet.balance || 0
+        );
+
+
+      if (
+        amount >
+        balance
+      ) {
+
+        return res.status(400).json({
+
+          success:
+            false,
+
+          message:
+            "Insufficient balance."
+
+        });
+
+      }
+
+
       await supabaseRequest(
-        `/rest/v1/wallets?user_id=eq.${encodeURIComponent(user.id)}&select=*`,
+        "/rest/v1/withdrawal_requests",
         {
-          method: "GET"
+
+          method:
+            "POST",
+
+          headers: {
+
+            Prefer:
+              "return=minimal"
+
+          },
+
+          body:
+            JSON.stringify({
+
+              user_id:
+                user.id,
+
+              amount:
+                amount,
+
+              phone:
+                phone,
+
+              status:
+                "pending"
+
+            })
+
         }
       );
 
 
-    if (
-      !wallets ||
-      wallets.length === 0
-    ) {
+      await supabaseRequest(
+        `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
+        {
 
-      return res.status(400).json({
-        success: false,
-        message: "Wallet not found."
+          method:
+            "PATCH",
+
+          headers: {
+
+            Prefer:
+              "return=minimal"
+
+          },
+
+          body:
+            JSON.stringify({
+
+              balance:
+                balance - amount,
+
+              updated_at:
+                new Date()
+                  .toISOString()
+
+            })
+
+        }
+      );
+
+
+      return res.json({
+
+        success:
+          true,
+
+        message:
+          "Withdrawal request submitted successfully."
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "WITHDRAW ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+
+        success:
+          false,
+
+        message:
+          "Withdrawal failed.",
+
+        error:
+          error.message
+
       });
 
     }
-
-
-    const wallet =
-      wallets[0];
-
-    const balance =
-      Number(wallet.balance || 0);
-
-
-    if (amount > balance) {
-
-      return res.status(400).json({
-        success: false,
-        message: "Insufficient balance."
-      });
-
-    }
-
-
-    /*
-    ----------------------------------------------
-    CREATE WITHDRAWAL REQUEST
-    ----------------------------------------------
-    */
-
-    await supabaseRequest(
-      "/rest/v1/withdrawal_requests",
-      {
-        method: "POST",
-
-        headers: {
-          Prefer: "return=minimal"
-        },
-
-        body: JSON.stringify({
-
-          user_id:
-            user.id,
-
-          amount:
-            amount,
-
-          phone:
-            phone,
-
-          status:
-            "pending"
-
-        })
-      }
-    );
-
-
-    /*
-    ----------------------------------------------
-    RESERVE MONEY
-    ----------------------------------------------
-    */
-
-    await supabaseRequest(
-      `/rest/v1/wallets?id=eq.${encodeURIComponent(wallet.id)}`,
-      {
-        method: "PATCH",
-
-        headers: {
-          Prefer: "return=minimal"
-        },
-
-        body: JSON.stringify({
-
-          balance:
-            balance - amount,
-
-          updated_at:
-            new Date().toISOString()
-
-        })
-      }
-    );
-
-
-    return res.json({
-
-      success: true,
-
-      message:
-        "Withdrawal request submitted successfully."
-
-    });
-
-
-  } catch (error) {
-
-    console.error(
-      "WITHDRAW ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-
-      success: false,
-
-      message:
-        "Withdrawal failed.",
-
-      error:
-        error.message
-
-    });
 
   }
-
-});
+);
 
 
 /*
@@ -890,23 +1102,30 @@ SERVE GUTU GAME WEBSITE
 */
 
 const publicPath =
-  path.join(__dirname, "..");
+  path.join(
+    __dirname,
+    ".."
+  );
+
 
 app.use(
   express.static(publicPath)
 );
 
 
-app.get("/", (req, res) => {
+app.get(
+  "/",
+  (req, res) => {
 
-  res.sendFile(
-    path.join(
-      publicPath,
-      "index.html"
-    )
-  );
+    res.sendFile(
+      path.join(
+        publicPath,
+        "index.html"
+      )
+    );
 
-});
+  }
+);
 
 
 /*
