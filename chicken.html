@@ -1,859 +1,760 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gutu Chicken Game</title>
 
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * {
       box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
-      background-color: #0f172a;
-      color: #ffffff;
       margin: 0;
-      padding: 15px;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
     }
 
     .container {
       max-width: 500px;
-      margin: 0 auto;
-      background-color: #1e293b;
+      margin: auto;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 12px;
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .balance-box {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .game-box {
+      background: #1b1b1b;
+      border-radius: 15px;
+      padding: 30px 20px;
       margin-bottom: 20px;
     }
 
-    .balance {
-      font-size: 18px;
+    #multiplier {
+      font-size: 55px;
       font-weight: bold;
-      color: #10b981;
+      margin: 25px 0;
     }
 
-    .multiplier-display {
-      font-size: 48px;
-      font-weight: bold;
-      text-align: center;
-      color: #f59e0b;
-      margin: 20px 0;
-    }
-
-    .btn {
+    input {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
+      margin: 8px 0;
+      border-radius: 8px;
       border: none;
-      border-radius: 6px;
       font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
-      transition: 0.2s;
     }
 
-    .btn-primary {
-      background-color: #2563eb;
-      color: #ffffff;
+    #startBtn {
+      background: #22c55e;
+      color: white;
     }
 
-    .btn-success {
-      background-color: #059669;
-      color: #ffffff;
+    #cashoutBtn {
+      background: #f59e0b;
+      color: white;
     }
 
-    .btn-danger {
-      background-color: #dc2626;
-      color: #ffffff;
+    #depositBtn {
+      background: #2563eb;
+      color: white;
     }
 
-    .btn:disabled {
+    #withdrawBtn {
+      background: #7c3aed;
+      color: white;
+    }
+
+    #logoutBtn {
+      background: #dc2626;
+      color: white;
+    }
+
+    button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    input,
-    select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      margin-bottom: 12px;
-      background: #334155;
-      border: 1px solid #475569;
-      border-radius: 6px;
-      color: #fff;
-      font-size: 16px;
+    .section {
+      background: #1b1b1b;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
     }
 
-    .tab-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      background: #334155;
-      color: #fff;
-      border: none;
-      padding: 8px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .tab-btn.active {
-      background: #2563eb;
-    }
-
-    .hidden {
+    #status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
       display: none;
     }
 
-    .status-msg {
-      margin-top: 10px;
-      padding: 8px;
-      border-radius: 6px;
-      text-align: center;
-      font-size: 14px;
-      word-break: break-word;
+    .success {
+      background: #166534;
+      display: block !important;
     }
 
-    .status-msg.success {
-      background-color: #064e3b;
-      color: #34d399;
+    .error {
+      background: #991b1b;
+      display: block !important;
     }
 
-    .status-msg.error {
-      background-color: #7f1d1d;
-      color: #fca5a5;
+    .info {
+      background: #1e40af;
+      display: block !important;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <div class="header">
+  <h1>🐔 Gutu Chicken Game</h1>
 
-      <h2>🐔 Gutu Game</h2>
+  <div class="balance-box">
+    Balance:
+    <strong><span id="balance">0.00</span> ETB</strong>
+  </div>
 
-      <div class="balance">
-        Balance:
-        <span id="userBalance">0.00</span>
-        ETB
-      </div>
+  <div class="game-box">
 
-    </div>
+    <div id="multiplier">1.00x</div>
 
-    <div
-      class="multiplier-display"
-      id="multiplier"
-    >
-      1.00x
-    </div>
-
-    <!-- GAME -->
-
-    <div id="gameControls">
-
-      <label>
-        Bet Amount (ETB):
-      </label>
-
-      <input
-        type="number"
-        id="betAmount"
-        value="10"
-        min="1"
-      />
-
-      <button
-        id="startBtn"
-        class="btn btn-primary"
-        onclick="startGame()"
-      >
-        START GAME
-      </button>
-
-      <button
-        id="cashoutBtn"
-        class="btn btn-success hidden"
-        onclick="cashOut()"
-      >
-        CASH OUT
-      </button>
-
-    </div>
-
-    <hr
-      style="border-color:#334155;margin:25px 0;"
-    />
-
-    <!-- WALLET -->
-
-    <h3>
-      💳 Wallet & Payments
-    </h3>
-
-    <div class="tab-group">
-
-      <button
-        class="tab-btn active"
-        id="tabDeposit"
-        onclick="switchTab('deposit')"
-      >
-        Deposit
-      </button>
-
-      <button
-        class="tab-btn"
-        id="tabWithdraw"
-        onclick="switchTab('withdraw')"
-      >
-        Withdraw
-      </button>
-
-    </div>
-
-    <!-- DEPOSIT -->
-
-    <div id="depositForm">
-
-      <label>
-        Amount (ETB):
-      </label>
-
-      <input
-        type="number"
-        id="depositAmount"
-        value="50"
-        min="10"
-      />
-
-      <button
-        class="btn btn-primary"
-        id="depositBtn"
-        onclick="processDeposit()"
-      >
-        DEPOSIT VIA CHAPA
-      </button>
-
-    </div>
-
-    <!-- WITHDRAW -->
-
-    <div
-      id="withdrawForm"
-      class="hidden"
+    <input
+      type="number"
+      id="betAmount"
+      value="10"
+      min="1"
+      step="0.01"
+      placeholder="Bet amount"
     >
 
-      <label>
-        Amount (ETB):
-      </label>
+    <button id="startBtn" onclick="startGame()">
+      START GAME
+    </button>
 
-      <input
-        type="number"
-        id="withdrawAmount"
-        value="50"
-        min="10"
-      />
+    <button id="cashoutBtn" onclick="cashOut()" disabled>
+      CASH OUT
+    </button>
 
-      <label>
-        Account / Phone Number:
-      </label>
+    <div id="status"></div>
 
-      <input
-        type="text"
-        id="withdrawAccount"
-        placeholder="0912345678"
-      />
+  </div>
 
-      <label>
-        Payment Method:
-      </label>
+  <div class="section">
 
-      <select id="withdrawMethod">
+    <h2>💰 Deposit</h2>
 
-        <option value="Telebirr">
-          Telebirr
-        </option>
-
-        <option value="CBE Birr">
-          CBE Birr
-        </option>
-
-        <option value="Bank">
-          Bank Transfer
-        </option>
-
-      </select>
-
-      <button
-        class="btn btn-danger"
-        onclick="processWithdrawal()"
-      >
-        REQUEST WITHDRAWAL
-      </button>
-
-    </div>
-
-    <!-- STATUS -->
-
-    <div
-      id="statusBox"
-      class="status-msg hidden"
-    ></div>
-
-    <!-- LOGOUT -->
-
-    <button
-      class="btn"
-      style="background:#475569;margin-top:20px;"
-      onclick="logOut()"
+    <input
+      type="number"
+      id="depositAmount"
+      min="1"
+      step="0.01"
+      placeholder="Deposit amount"
     >
-      Log Out
+
+    <button id="depositBtn" onclick="processDeposit()">
+      DEPOSIT WITH CHAPA
     </button>
 
   </div>
 
-  <script>
+  <div class="section">
 
-    /*
-    ==================================================
-    SUPABASE
-    ==================================================
-    */
+    <h2>🏦 Withdrawal</h2>
 
-    const SUPABASE_URL =
-      "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+    <input
+      type="number"
+      id="withdrawAmount"
+      min="1"
+      step="0.01"
+      placeholder="Withdrawal amount"
+    >
 
-    const SUPABASE_ANON_KEY =
-      "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+    <input
+      type="text"
+      id="withdrawPhone"
+      placeholder="Phone number"
+    >
 
-    const supabaseClient =
-      supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
+    <button id="withdrawBtn" onclick="processWithdrawal()">
+      REQUEST WITHDRAWAL
+    </button>
 
+  </div>
 
-    /*
-    ==================================================
-    GAME VARIABLES
-    ==================================================
-    */
+  <button id="logoutBtn" onclick="logOut()">
+    LOG OUT
+  </button>
 
-    let currentMultiplier = 1.00;
-
-    let gameInterval = null;
-
-    let isPlaying = false;
-
-    let currentUser = null;
+</div>
 
 
-    /*
-    ==================================================
-    SESSION
-    ==================================================
-    */
+<script>
 
-    async function initSession() {
+  // ==============================
+  // SUPABASE
+  // ==============================
 
-      const {
-        data: {
-          session
-        }
-      } =
-        await supabaseClient.auth.getSession();
+  const SUPABASE_URL =
+    "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
 
-      if (session) {
+  const SUPABASE_ANON_KEY =
+    "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
 
-        currentUser =
-          session.user;
-
-        await fetchBalance();
-
-      } else {
-
-        showStatus(
-          "Please log in to play.",
-          "error"
-        );
-
-      }
-
-    }
+  const supabaseClient =
+    supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
 
 
-    /*
-    ==================================================
-    BALANCE
-    ==================================================
-    */
+  // ==============================
+  // GAME VARIABLES
+  // ==============================
 
-    async function fetchBalance() {
+  let currentUser = null;
 
-      if (!currentUser) {
-        return;
-      }
+  let gameRunning = false;
+  let cashedOut = false;
 
-      try {
+  let gameInterval = null;
 
-        const {
-          data,
-          error
-        } =
-        await supabaseClient
-          .from("wallets")
-          .select("balance")
-          .eq(
-            "user_id",
-            currentUser.id
-          )
-          .single();
+  let currentMultiplier = 1.00;
+  let crashPoint = 0;
 
-        if (error) {
+  let bet = 0;
 
-          console.error(
-            "BALANCE ERROR:",
-            error
-          );
 
-          return;
+  // ==============================
+  // ELEMENTS
+  // ==============================
 
-        }
+  const balanceElement =
+    document.getElementById("balance");
 
-        if (data) {
+  const multiplierElement =
+    document.getElementById("multiplier");
 
-          document.getElementById(
-            "userBalance"
-          ).innerText =
-            Number(
-              data.balance || 0
-            ).toFixed(2);
+  const betInput =
+    document.getElementById("betAmount");
 
-        }
+  const startBtn =
+    document.getElementById("startBtn");
 
-      } catch (error) {
+  const cashoutBtn =
+    document.getElementById("cashoutBtn");
 
-        console.error(
-          "BALANCE ERROR:",
-          error
-        );
 
-      }
+  // ==============================
+  // STATUS MESSAGE
+  // ==============================
+
+  function showStatus(message, type = "info") {
+
+    const status =
+      document.getElementById("status");
+
+    status.textContent = message;
+
+    status.className = type;
+
+  }
+
+
+  // ==============================
+  // GET CURRENT USER
+  // ==============================
+
+  async function loadUser() {
+
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.getUser();
+
+    if (error || !data.user) {
+
+      window.location.href = "index.html";
+
+      return;
 
     }
 
+    currentUser = data.user;
 
-    /*
-    ==================================================
-    TABS
-    ==================================================
-    */
+    await fetchBalance();
 
-    function switchTab(tab) {
-
-      if (tab === "deposit") {
-
-        document
-          .getElementById("depositForm")
-          .classList
-          .remove("hidden");
-
-        document
-          .getElementById("withdrawForm")
-          .classList
-          .add("hidden");
-
-        document
-          .getElementById("tabDeposit")
-          .classList
-          .add("active");
-
-        document
-          .getElementById("tabWithdraw")
-          .classList
-          .remove("active");
-
-      } else {
-
-        document
-          .getElementById("depositForm")
-          .classList
-          .add("hidden");
-
-        document
-          .getElementById("withdrawForm")
-          .classList
-          .remove("hidden");
-
-        document
-          .getElementById("tabWithdraw")
-          .classList
-          .add("active");
-
-        document
-          .getElementById("tabDeposit")
-          .classList
-          .remove("active");
-
-      }
-
-    }
+  }
 
 
-    /*
-    ==================================================
-    STATUS MESSAGE
-    ==================================================
-    */
+  // ==============================
+  // FETCH WALLET BALANCE
+  // ==============================
 
-    function showStatus(
-      msg,
-      type
-    ) {
+  async function fetchBalance() {
 
-      const box =
-        document.getElementById(
-          "statusBox"
-        );
+    if (!currentUser) return;
 
-      box.innerText =
-        String(msg);
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", currentUser.id)
+      .single();
 
-      box.className =
-        `status-msg ${type}`;
+    if (error) {
 
-      box.classList.remove(
-        "hidden"
-      );
-
-    }
-
-
-    /*
-    ==================================================
-    GAME START
-    ==================================================
-    */
-
-    async function startGame() {
-
-      if (!currentUser) {
-
-        return showStatus(
-          "Please log in first.",
-          "error"
-        );
-
-      }
-
-      const bet =
-        parseFloat(
-          document.getElementById(
-            "betAmount"
-          ).value
-        );
-
-      if (
-        isNaN(bet) ||
-        bet <= 0
-      ) {
-
-        return showStatus(
-          "Enter a valid bet amount.",
-          "error"
-        );
-
-      }
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient.rpc(
-          "place_bet",
-          {
-            p_bet_amount:
-              bet
-          }
-        );
-
-      console.log(
-        "PLACE BET RPC DATA:",
-        data
-      );
-
-      console.log(
-        "PLACE BET RPC ERROR:",
+      console.error(
+        "BALANCE ERROR:",
         error
       );
 
-      if (error) {
+      showStatus(
+        "Could not load balance: " +
+        error.message,
+        "error"
+      );
 
-        return showStatus(
-          "Bet error: " +
-          error.message,
-          "error"
-        );
+      return;
 
+    }
+
+    balanceElement.textContent =
+      Number(data.balance || 0).toFixed(2);
+
+  }
+
+
+  // ==============================
+  // START GAME
+  // ==============================
+
+  async function startGame() {
+
+    if (gameRunning) return;
+
+    if (!currentUser) {
+
+      showStatus(
+        "Please login first.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    const amount =
+      Number(betInput.value);
+
+    if (!amount || amount <= 0) {
+
+      showStatus(
+        "Enter a valid bet amount.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    bet = amount;
+
+    // Stop any old interval just in case.
+    if (gameInterval) {
+
+      clearInterval(gameInterval);
+
+      gameInterval = null;
+
+    }
+
+    // ==============================
+    // PLACE BET
+    // ==============================
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      "place_bet",
+      {
+        p_bet_amount: bet
       }
+    );
 
-      isPlaying = true;
+    console.log(
+      "PLACE BET RPC DATA:",
+      data
+    );
 
-      currentMultiplier = 1.00;
+    console.log(
+      "PLACE BET RPC ERROR:",
+      error
+    );
+
+    if (error) {
+
+      showStatus(
+        "Bet error: " +
+        error.message,
+        "error"
+      );
 
       await fetchBalance();
 
-      document
-        .getElementById("startBtn")
-        .classList
-        .add("hidden");
+      return;
 
-      document
-        .getElementById("cashoutBtn")
-        .classList
-        .remove("hidden");
+    }
 
-      const crashPoint =
+
+    // ==============================
+    // GAME START
+    // ==============================
+
+    gameRunning = true;
+    cashedOut = false;
+
+    currentMultiplier = 1.00;
+
+    // Random crash point.
+    crashPoint =
+      Number(
         (
           Math.random() * 3.9 +
           1.1
-        ).toFixed(2);
-
-      gameInterval =
-        setInterval(
-          () => {
-
-            currentMultiplier += 0.05;
-
-            document
-              .getElementById(
-                "multiplier"
-              )
-              .innerText =
-                currentMultiplier
-                  .toFixed(2) +
-                "x";
-
-            if (
-              currentMultiplier >=
-              crashPoint
-            ) {
-
-              endGame(false);
-
-            }
-
-          },
-          200
-        );
-
-    }
-
-
-    /*
-    ==================================================
-    CASH OUT
-    ==================================================
-    */
-
-    async function cashOut() {
-
-      if (!isPlaying) {
-        return;
-      }
-
-      clearInterval(
-        gameInterval
+        ).toFixed(2)
       );
 
-      const bet =
-        parseFloat(
-          document.getElementById(
-            "betAmount"
-          ).value
-        );
+    console.log(
+      "Crash point:",
+      crashPoint
+    );
 
-      const winnings =
-        bet *
-        currentMultiplier;
+    multiplierElement.textContent =
+      "1.00x";
 
+    startBtn.disabled = true;
+    cashoutBtn.disabled = false;
+    betInput.disabled = true;
 
-      const {
-        data,
-        error
-      } =
-        await supabaseClient.rpc(
-          "increment_balance",
-          {
+    showStatus(
+      "Game started!",
+      "info"
+    );
 
-            p_user_id:
-              currentUser.id,
-
-            p_amount:
-              winnings
-
-          }
-        );
+    await fetchBalance();
 
 
-      console.log(
-        "CASHOUT RPC DATA:",
-        data
-      );
+    // ==============================
+    // GAME LOOP
+    // ==============================
 
-      console.log(
-        "CASHOUT RPC ERROR:",
-        error
-      );
+    gameInterval = setInterval(() => {
 
+      // Extra safety:
+      // If game stopped, do nothing.
+      if (!gameRunning || cashedOut) {
 
-      if (error) {
+        clearInterval(gameInterval);
 
-        showStatus(
-          "Cashout error: " +
-          error.message,
-          "error"
-        );
-
-        resetGameUI();
-
-        await fetchBalance();
+        gameInterval = null;
 
         return;
 
       }
 
+      currentMultiplier += 0.05;
 
-      showStatus(
-        `Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${winnings.toFixed(2)} ETB.`,
-        "success"
-      );
+      currentMultiplier =
+        Number(
+          currentMultiplier.toFixed(2)
+        );
 
-      resetGameUI();
+      multiplierElement.textContent =
+        currentMultiplier.toFixed(2) +
+        "x";
 
-      await fetchBalance();
+
+      // ==============================
+      // CRASH
+      // ==============================
+
+      if (
+        currentMultiplier >= crashPoint
+      ) {
+
+        clearInterval(gameInterval);
+
+        gameInterval = null;
+
+        endGame(false);
+
+      }
+
+    }, 200);
+
+  }
+
+
+  // ==============================
+  // CASH OUT
+  // ==============================
+
+  async function cashOut() {
+
+    if (!gameRunning || cashedOut) {
+
+      return;
 
     }
 
+    // ==============================
+    // STOP GAME IMMEDIATELY
+    // ==============================
 
-    /*
-    ==================================================
-    GAME END
-    ==================================================
-    */
+    cashedOut = true;
+    gameRunning = false;
 
-    function endGame(won) {
+    if (gameInterval) {
 
-      clearInterval(
-        gameInterval
-      );
+      clearInterval(gameInterval);
 
-      isPlaying = false;
+      gameInterval = null;
+
+    }
+
+    // Save the multiplier at the
+    // exact moment CASH OUT was pressed.
+    const cashoutMultiplier =
+      currentMultiplier;
+
+    const winnings =
+      bet * cashoutMultiplier;
+
+
+    // Disable CASH OUT immediately.
+    cashoutBtn.disabled = true;
+
+
+    // ==============================
+    // ADD WINNINGS
+    // ==============================
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      "increment_balance",
+      {
+        p_user_id: currentUser.id,
+        p_amount: winnings
+      }
+    );
+
+    console.log(
+      "CASHOUT RPC DATA:",
+      data
+    );
+
+    console.log(
+      "CASHOUT RPC ERROR:",
+      error
+    );
+
+
+    if (error) {
 
       showStatus(
-        "CRASHED! Better luck next time.",
+        "Cashout error: " +
+        error.message,
         "error"
       );
 
       resetGameUI();
 
-    }
+      await fetchBalance();
 
-
-    /*
-    ==================================================
-    RESET GAME
-    ==================================================
-    */
-
-    function resetGameUI() {
-
-      isPlaying = false;
-
-      document
-        .getElementById("startBtn")
-        .classList
-        .remove("hidden");
-
-      document
-        .getElementById("cashoutBtn")
-        .classList
-        .add("hidden");
+      return;
 
     }
 
 
-    /*
-    ==================================================
-    CHAPA DEPOSIT
-    ==================================================
-    */
+    // ==============================
+    // SUCCESS
+    // ==============================
 
-    async function processDeposit() {
+    showStatus(
+      "Cashed out at " +
+      cashoutMultiplier.toFixed(2) +
+      "x! Won " +
+      winnings.toFixed(2) +
+      " ETB.",
+      "success"
+    );
 
-      if (!currentUser) {
+    resetGameUI();
 
-        showStatus(
-          "Please log in first.",
-          "error"
-        );
+    await fetchBalance();
 
-        return;
+  }
 
-      }
+
+  // ==============================
+  // GAME CRASH
+  // ==============================
+
+  function endGame(playerCashedOut) {
+
+    if (playerCashedOut) return;
+
+    gameRunning = false;
+
+    cashedOut = false;
+
+    if (gameInterval) {
+
+      clearInterval(gameInterval);
+
+      gameInterval = null;
+
+    }
+
+    multiplierElement.textContent =
+      "💥 " +
+      currentMultiplier.toFixed(2) +
+      "x";
+
+    showStatus(
+      "Game crashed at " +
+      currentMultiplier.toFixed(2) +
+      "x. Bet lost.",
+      "error"
+    );
+
+    resetGameUI(false);
+
+    fetchBalance();
+
+  }
+
+
+  // ==============================
+  // RESET GAME UI
+  // ==============================
+
+  function resetGameUI(clearMultiplier = true) {
+
+    gameRunning = false;
+
+    cashedOut = false;
+
+    if (gameInterval) {
+
+      clearInterval(gameInterval);
+
+      gameInterval = null;
+
+    }
+
+    startBtn.disabled = false;
+
+    cashoutBtn.disabled = true;
+
+    betInput.disabled = false;
+
+    if (clearMultiplier) {
+
+      currentMultiplier = 1.00;
+
+      multiplierElement.textContent =
+        "1.00x";
+
+    }
+
+  }
+
+
+  // ==============================
+  // CHAPA DEPOSIT
+  // ==============================
+
+  async function processDeposit() {
+
+    if (!currentUser) {
+
+      showStatus(
+        "Please login first.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    const amount =
+      Number(
+        document.getElementById(
+          "depositAmount"
+        ).value
+      );
+
+    if (!amount || amount <= 0) {
+
+      showStatus(
+        "Enter a valid deposit amount.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    try {
 
       const {
-        data: {
-          session
-        }
+        data: sessionData,
+        error: sessionError
       } =
         await supabaseClient.auth.getSession();
 
-      if (!session) {
-
-        showStatus(
-          "Your login session has expired. Please log in again.",
-          "error"
-        );
-
-        return;
-
-      }
-
-      const amount =
-        parseFloat(
-          document.getElementById(
-            "depositAmount"
-          ).value
-        );
-
       if (
-        isNaN(amount) ||
-        amount < 10
+        sessionError ||
+        !sessionData.session
       ) {
 
         showStatus(
-          "Minimum deposit is 10 ETB.",
+          "Session expired. Please login again.",
           "error"
         );
 
@@ -861,298 +762,250 @@
 
       }
 
-      const btn =
-        document.getElementById(
-          "depositBtn"
-        );
-
-      btn.disabled = true;
-
       showStatus(
-        "Connecting to Chapa...",
-        "success"
+        "Preparing Chapa payment...",
+        "info"
       );
 
-      try {
 
-        const response =
-          await fetch(
-            "/api/chapa/initialize",
-            {
+      const response =
+        await fetch(
+          "/api/chapa/initialize",
+          {
+            method: "POST",
 
-              method:
-                "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
 
-              headers: {
+              "Authorization":
+                "Bearer " +
+                sessionData.session
+                  .access_token
+            },
 
-                "Content-Type":
-                  "application/json",
-
-                "Authorization":
-                  `Bearer ${session.access_token}`
-
-              },
-
-              body:
-                JSON.stringify({
-
-                  amount:
-                    amount
-
-                })
-
-            }
-          );
-
-        const responseText =
-          await response.text();
-
-        let data = {};
-
-        try {
-
-          data =
-            responseText
-              ? JSON.parse(
-                  responseText
-                )
-              : {};
-
-        } catch (parseError) {
-
-          console.error(
-            "SERVER RETURNED NON-JSON:",
-            responseText
-          );
-
-          btn.disabled = false;
-
-          showStatus(
-            "Server returned an invalid response: " +
-            responseText,
-            "error"
-          );
-
-          return;
-
-        }
-
-        console.log(
-          "CHAPA SERVER RESPONSE:",
-          data
-        );
-
-        if (
-          response.ok &&
-          data.success === true &&
-          data.checkout_url
-        ) {
-
-          showStatus(
-            "Redirecting to Chapa payment page...",
-            "success"
-          );
-
-          window.location.href =
-            data.checkout_url;
-
-          return;
-
-        }
-
-        btn.disabled = false;
-
-        let message =
-          "Chapa payment initialization failed.";
-
-        if (
-          data.message !== undefined
-        ) {
-
-          if (
-            typeof data.message ===
-            "string"
-          ) {
-
-            message =
-              data.message;
-
-          } else {
-
-            message =
-              JSON.stringify(
-                data.message,
-                null,
-                2
-              );
-
+            body: JSON.stringify({
+              amount: amount
+            })
           }
-
-        }
-
-        showStatus(
-          "Chapa Error: " +
-          message,
-          "error"
         );
 
-        console.error(
-          "FULL CHAPA ERROR:",
-          data
-        );
 
-      } catch (error) {
+      const data =
+        await response.json();
 
-        btn.disabled = false;
 
-        console.error(
-          "DEPOSIT CONNECTION ERROR:",
-          error
-        );
+      if (!response.ok) {
 
-        showStatus(
-          "Connection Error: " +
-          error.message,
-          "error"
+        throw new Error(
+          data.error ||
+          data.message ||
+          "Deposit failed."
         );
 
       }
+
+
+      console.log(
+        "CHAPA RESPONSE:",
+        data
+      );
+
+
+      if (!data.checkout_url) {
+
+        throw new Error(
+          "No Chapa checkout URL received."
+        );
+
+      }
+
+
+      showStatus(
+        "Redirecting to Chapa...",
+        "success"
+      );
+
+
+      window.location.href =
+        data.checkout_url;
+
+    } catch (error) {
+
+      console.error(
+        "DEPOSIT ERROR:",
+        error
+      );
+
+      showStatus(
+        "Deposit error: " +
+        error.message,
+        "error"
+      );
+
+    }
+
+  }
+
+
+  // ==============================
+  // WITHDRAWAL
+  // ==============================
+
+  async function processWithdrawal() {
+
+    if (!currentUser) {
+
+      showStatus(
+        "Please login first.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    const amount =
+      Number(
+        document.getElementById(
+          "withdrawAmount"
+        ).value
+      );
+
+    const phone =
+      document.getElementById(
+        "withdrawPhone"
+      ).value.trim();
+
+
+    if (!amount || amount <= 0) {
+
+      showStatus(
+        "Enter a valid withdrawal amount.",
+        "error"
+      );
+
+      return;
 
     }
 
 
-    /*
-    ==================================================
-    WITHDRAWAL
-    ==================================================
-    */
+    if (!phone) {
 
-    async function processWithdrawal() {
+      showStatus(
+        "Enter your phone number.",
+        "error"
+      );
 
-      if (!currentUser) {
+      return;
 
-        return showStatus(
-          "Please log in first.",
-          "error"
-        );
+    }
 
-      }
 
-      const amount =
-        parseFloat(
-          document.getElementById(
-            "withdrawAmount"
-          ).value
-        );
-
-      const account =
-        document.getElementById(
-          "withdrawAccount"
-        ).value
-        .trim();
-
-      const method =
-        document.getElementById(
-          "withdrawMethod"
-        ).value;
-
-      if (
-        !amount ||
-        amount < 10
-      ) {
-
-        return showStatus(
-          "Minimum withdrawal is 10 ETB.",
-          "error"
-        );
-
-      }
-
-      if (!account) {
-
-        return showStatus(
-          "Please enter an account or phone number.",
-          "error"
-        );
-
-      }
+    try {
 
       const {
         data,
         error
-      } =
-        await supabaseClient.rpc(
-          "request_withdrawal",
-          {
+      } = await supabaseClient.rpc(
+        "request_withdrawal",
+        {
+          p_amount: amount,
+          p_phone: phone
+        }
+      );
 
-            p_amount:
-              amount,
-
-            p_account:
-              account,
-
-            p_method:
-              method
-
-          }
-        );
 
       console.log(
-        "WITHDRAWAL RPC DATA:",
+        "WITHDRAW RPC DATA:",
         data
       );
 
       console.log(
-        "WITHDRAWAL RPC ERROR:",
+        "WITHDRAW RPC ERROR:",
         error
       );
+
 
       if (error) {
 
         showStatus(
+          "Withdrawal error: " +
           error.message,
           "error"
         );
 
-      } else {
-
-        showStatus(
-          "✅ Withdrawal requested! Admin will review shortly.",
-          "success"
-        );
-
         await fetchBalance();
+
+        return;
 
       }
 
+
+      showStatus(
+        "Withdrawal request submitted successfully.",
+        "success"
+      );
+
+
+      document.getElementById(
+        "withdrawAmount"
+      ).value = "";
+
+      document.getElementById(
+        "withdrawPhone"
+      ).value = "";
+
+
+      await fetchBalance();
+
+    } catch (error) {
+
+      console.error(
+        "WITHDRAWAL ERROR:",
+        error
+      );
+
+      showStatus(
+        "Withdrawal error: " +
+        error.message,
+        "error"
+      );
+
     }
 
+  }
 
-    /*
-    ==================================================
-    LOG OUT
-    ==================================================
-    */
 
-    async function logOut() {
+  // ==============================
+  // LOG OUT
+  // ==============================
 
-      await supabaseClient.auth.signOut();
+  async function logOut() {
 
-      window.location.reload();
+    if (gameInterval) {
+
+      clearInterval(gameInterval);
+
+      gameInterval = null;
 
     }
 
+    await supabaseClient.auth.signOut();
 
-    /*
-    ==================================================
-    START
-    ==================================================
-    */
+    window.location.href =
+      "index.html";
 
-    initSession();
+  }
 
-  </script>
+
+  // ==============================
+  // INITIAL LOAD
+  // ==============================
+
+  loadUser();
+
+</script>
 
 </body>
-
   </html>
