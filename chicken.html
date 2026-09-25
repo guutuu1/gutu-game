@@ -161,14 +161,12 @@
 
     </div>
 
-
     <div
       class="multiplier-display"
       id="multiplier"
     >
       1.00x
     </div>
-
 
     <!-- GAME -->
 
@@ -203,18 +201,15 @@
 
     </div>
 
-
     <hr
       style="border-color:#334155;margin:25px 0;"
     />
-
 
     <!-- WALLET -->
 
     <h3>
       💳 Wallet & Payments
     </h3>
-
 
     <div class="tab-group">
 
@@ -235,7 +230,6 @@
       </button>
 
     </div>
-
 
     <!-- DEPOSIT -->
 
@@ -262,7 +256,6 @@
 
     </div>
 
-
     <!-- WITHDRAW -->
 
     <div
@@ -281,7 +274,6 @@
         min="10"
       />
 
-
       <label>
         Account / Phone Number:
       </label>
@@ -291,7 +283,6 @@
         id="withdrawAccount"
         placeholder="0912345678"
       />
-
 
       <label>
         Payment Method:
@@ -313,7 +304,6 @@
 
       </select>
 
-
       <button
         class="btn btn-danger"
         onclick="processWithdrawal()"
@@ -323,14 +313,12 @@
 
     </div>
 
-
     <!-- STATUS -->
 
     <div
       id="statusBox"
       class="status-msg hidden"
     ></div>
-
 
     <!-- LOGOUT -->
 
@@ -343,7 +331,6 @@
     </button>
 
   </div>
-
 
   <script>
 
@@ -358,7 +345,6 @@
 
     const SUPABASE_ANON_KEY =
       "sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
-
 
     const supabaseClient =
       supabase.createClient(
@@ -396,7 +382,6 @@
         }
       } =
         await supabaseClient.auth.getSession();
-
 
       if (session) {
 
@@ -444,7 +429,6 @@
             )
             .single();
 
-
         if (error) {
 
           console.error(
@@ -455,7 +439,6 @@
           return;
 
         }
-
 
         if (data) {
 
@@ -553,14 +536,11 @@
           "statusBox"
         );
 
-
       box.innerText =
         String(msg);
 
-
       box.className =
         `status-msg ${type}`;
-
 
       box.classList.remove(
         "hidden"
@@ -586,14 +566,12 @@
 
       }
 
-
       const bet =
         parseFloat(
           document.getElementById(
             "betAmount"
           ).value
         );
-
 
       if (
         isNaN(bet) ||
@@ -607,7 +585,6 @@
 
       }
 
-
       const {
         data,
         error
@@ -620,6 +597,15 @@
           }
         );
 
+      console.log(
+        "PLACE BET RPC DATA:",
+        data
+      );
+
+      console.log(
+        "PLACE BET RPC ERROR:",
+        error
+      );
 
       if (error) {
 
@@ -630,25 +616,21 @@
 
       }
 
-
       isPlaying = true;
 
       currentMultiplier = 1.00;
 
       await fetchBalance();
 
-
       document
         .getElementById("startBtn")
         .classList
         .add("hidden");
 
-
       document
         .getElementById("cashoutBtn")
         .classList
         .remove("hidden");
-
 
       const crashPoint =
         (
@@ -656,13 +638,11 @@
           1.1
         ).toFixed(2);
 
-
       gameInterval =
         setInterval(
           () => {
 
             currentMultiplier += 0.05;
-
 
             document
               .getElementById(
@@ -672,7 +652,6 @@
                 currentMultiplier
                   .toFixed(2) +
                 "x";
-
 
             if (
               currentMultiplier >=
@@ -702,11 +681,9 @@
         return;
       }
 
-
       clearInterval(
         gameInterval
       );
-
 
       const bet =
         parseFloat(
@@ -715,13 +692,19 @@
           ).value
         );
 
-
       const winnings =
         bet *
         currentMultiplier;
 
 
+      /*
+      ----------------------------------------------
+      CASHOUT RPC
+      ----------------------------------------------
+      */
+
       const {
+        data,
         error
       } =
         await supabaseClient.rpc(
@@ -738,21 +721,56 @@
         );
 
 
+      /*
+      ----------------------------------------------
+      DEBUG INFORMATION
+      ----------------------------------------------
+      */
+
+      console.log(
+        "CASHOUT RPC DATA:",
+        data
+      );
+
+      console.log(
+        "CASHOUT RPC ERROR:",
+        error
+      );
+
+
+      /*
+      ----------------------------------------------
+      HANDLE RPC ERROR
+      ----------------------------------------------
+      */
+
       if (error) {
 
         showStatus(
+          "Cashout error: " +
           error.message,
           "error"
         );
 
-      } else {
+        resetGameUI();
 
-        showStatus(
-          `Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${winnings.toFixed(2)} ETB.`,
-          "success"
-        );
+        await fetchBalance();
+
+        return;
 
       }
+
+
+      /*
+      ----------------------------------------------
+      SUCCESS
+      ----------------------------------------------
+      */
+
+      showStatus(
+        `Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${winnings.toFixed(2)} ETB.`,
+        "success"
+      );
 
 
       resetGameUI();
@@ -776,12 +794,10 @@
 
       isPlaying = false;
 
-
       showStatus(
         "CRASHED! Better luck next time.",
         "error"
       );
-
 
       resetGameUI();
 
@@ -798,12 +814,10 @@
 
       isPlaying = false;
 
-
       document
         .getElementById("startBtn")
         .classList
         .remove("hidden");
-
 
       document
         .getElementById("cashoutBtn")
@@ -832,14 +846,12 @@
 
       }
 
-
       const {
         data: {
           session
         }
       } =
         await supabaseClient.auth.getSession();
-
 
       if (!session) {
 
@@ -852,14 +864,12 @@
 
       }
 
-
       const amount =
         parseFloat(
           document.getElementById(
             "depositAmount"
           ).value
         );
-
 
       if (
         isNaN(amount) ||
@@ -875,21 +885,17 @@
 
       }
 
-
       const btn =
         document.getElementById(
           "depositBtn"
         );
 
-
       btn.disabled = true;
-
 
       showStatus(
         "Connecting to Chapa...",
         "success"
       );
-
 
       try {
 
@@ -922,13 +928,10 @@
             }
           );
 
-
         const responseText =
           await response.text();
 
-
         let data = {};
-
 
         try {
 
@@ -946,9 +949,7 @@
             responseText
           );
 
-
           btn.disabled = false;
-
 
           showStatus(
             "Server returned an invalid response: " +
@@ -956,17 +957,14 @@
             "error"
           );
 
-
           return;
 
         }
-
 
         console.log(
           "CHAPA SERVER RESPONSE:",
           data
         );
-
 
         if (
           response.ok &&
@@ -979,22 +977,17 @@
             "success"
           );
 
-
           window.location.href =
             data.checkout_url;
-
 
           return;
 
         }
 
-
         btn.disabled = false;
-
 
         let message =
           "Chapa payment initialization failed.";
-
 
         if (
           data.message !== undefined
@@ -1021,30 +1014,25 @@
 
         }
 
-
         showStatus(
           "Chapa Error: " +
           message,
           "error"
         );
 
-
         console.error(
           "FULL CHAPA ERROR:",
           data
         );
 
-
       } catch (error) {
 
         btn.disabled = false;
-
 
         console.error(
           "DEPOSIT CONNECTION ERROR:",
           error
         );
-
 
         showStatus(
           "Connection Error: " +
@@ -1074,7 +1062,6 @@
 
       }
 
-
       const amount =
         parseFloat(
           document.getElementById(
@@ -1082,19 +1069,16 @@
           ).value
         );
 
-
       const account =
         document.getElementById(
           "withdrawAccount"
         ).value
         .trim();
 
-
       const method =
         document.getElementById(
           "withdrawMethod"
         ).value;
-
 
       if (
         !amount ||
@@ -1108,7 +1092,6 @@
 
       }
 
-
       if (!account) {
 
         return showStatus(
@@ -1118,8 +1101,8 @@
 
       }
 
-
       const {
+        data,
         error
       } =
         await supabaseClient.rpc(
@@ -1138,6 +1121,15 @@
           }
         );
 
+      console.log(
+        "WITHDRAWAL RPC DATA:",
+        data
+      );
+
+      console.log(
+        "WITHDRAWAL RPC ERROR:",
+        error
+      );
 
       if (error) {
 
@@ -1152,7 +1144,6 @@
           "✅ Withdrawal requested! Admin will review shortly.",
           "success"
         );
-
 
         await fetchBalance();
 
