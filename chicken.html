@@ -420,14 +420,14 @@
           data,
           error
         } =
-          await supabaseClient
-            .from("wallets")
-            .select("balance")
-            .eq(
-              "user_id",
-              currentUser.id
-            )
-            .single();
+        await supabaseClient
+          .from("wallets")
+          .select("balance")
+          .eq(
+            "user_id",
+            currentUser.id
+          )
+          .single();
 
         if (error) {
 
@@ -610,6 +610,7 @@
       if (error) {
 
         return showStatus(
+          "Bet error: " +
           error.message,
           "error"
         );
@@ -697,12 +698,6 @@
         currentMultiplier;
 
 
-      /*
-      ----------------------------------------------
-      CASHOUT RPC
-      ----------------------------------------------
-      */
-
       const {
         data,
         error
@@ -721,12 +716,6 @@
         );
 
 
-      /*
-      ----------------------------------------------
-      DEBUG INFORMATION
-      ----------------------------------------------
-      */
-
       console.log(
         "CASHOUT RPC DATA:",
         data
@@ -737,12 +726,6 @@
         error
       );
 
-
-      /*
-      ----------------------------------------------
-      HANDLE RPC ERROR
-      ----------------------------------------------
-      */
 
       if (error) {
 
@@ -761,17 +744,10 @@
       }
 
 
-      /*
-      ----------------------------------------------
-      SUCCESS
-      ----------------------------------------------
-      */
-
       showStatus(
         `Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${winnings.toFixed(2)} ETB.`,
         "success"
       );
-
 
       resetGameUI();
 
