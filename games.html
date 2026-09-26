@@ -8,6 +8,8 @@
 
 <title>Gutu Game - Games</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 
 *{
@@ -283,7 +285,6 @@ font-size:12px;
 </head>
 
 
-
 <body>
 
 
@@ -295,9 +296,16 @@ font-size:12px;
 </div>
 
 
+
 <div class="balance">
 
-🪙 Balance: <span id="balance">0.00</span> ETB
+🪙 Balance:
+
+<span id="balance">
+0.00
+</span>
+
+ETB
 
 </div>
 
@@ -313,15 +321,19 @@ font-size:12px;
 
 <div class="title">
 
+
 <h1>
 🎮 Choose Game
 </h1>
+
 
 <p>
 Play your favorite Gutu games
 </p>
 
+
 </div>
+
 
 
 
@@ -363,11 +375,12 @@ PLAY NOW
 
 
 
+
 <div class="card">
 
 
 <div class="icon">
-🎰
+👆
 </div>
 
 
@@ -377,7 +390,7 @@ Lucky Tap
 
 
 <p>
-Try your luck and win rewards.
+Tap once and try your luck.
 </p>
 
 
@@ -391,6 +404,7 @@ PLAY NOW
 
 
 </div>
+
 
 
 
@@ -427,6 +441,7 @@ LOCKED
 
 
 
+
 </div>
 
 
@@ -439,24 +454,30 @@ Gutu Game © 2026
 </div>
 
 
+
 </div>
+
 
 
 
 
 <div class="nav">
 
+
 <div>
 🏠 Home
 </div>
+
 
 <div>
 🎮 Games
 </div>
 
+
 <div>
 💰 Wallet
 </div>
+
 
 <div>
 👤 Profile
@@ -467,10 +488,101 @@ Gutu Game © 2026
 
 
 
+
+
 <script>
 
 
-// Later we will connect this to Supabase wallet balance.
+const SUPABASE_URL =
+"https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+
+
+const SUPABASE_KEY =
+"sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+
+const supabaseClient =
+supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+
+
+
+async function loadBalance(){
+
+
+const {
+data:userData,
+error:userError
+}
+=
+await supabaseClient.auth.getUser();
+
+
+
+if(userError || !userData.user){
+
+window.location.href =
+"index.html";
+
+return;
+
+}
+
+
+
+
+const {
+data,
+error
+}
+=
+await supabaseClient
+
+.from("wallets")
+
+.select("balance")
+
+.eq(
+"user_id",
+userData.user.id
+)
+
+.single();
+
+
+
+
+if(error){
+
+console.log(
+"Balance error:",
+error
+);
+
+return;
+
+}
+
+
+
+document.getElementById("balance")
+.textContent =
+Number(
+data.balance || 0
+).toFixed(2);
+
+
+
+}
+
+
+
+
+loadBalance();
+
 
 
 </script>
