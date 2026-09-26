@@ -9,7 +9,6 @@
 
 <title>Gutu Game</title>
 
-
 <style>
 
 *{
@@ -76,7 +75,7 @@ padding:15px;
 background:
 linear-gradient(
 145deg,
-rgba(255,215,gold,.18),
+rgba(255,215,0,.18),
 rgba(10,10,10,.95)
 );
 
@@ -288,7 +287,6 @@ margin:25px;
 
 }
 
-
 </style>
 
 </head>
@@ -387,18 +385,25 @@ FORGOT PASSWORD
 <p class="message" id="authMessage"></p>
 
 
-</section
+      </section>
       <section class="auth-box" id="resetBox" style="display:none;">
+
 
 <h2>
 🔑 Reset Password
 </h2>
 
 
-<input id="newPassword" type="password" placeholder="New password">
+<input 
+id="newPassword" 
+type="password" 
+placeholder="New password">
 
 
-<input id="confirmPassword" type="password" placeholder="Confirm password">
+<input 
+id="confirmPassword" 
+type="password" 
+placeholder="Confirm password">
 
 
 <button class="login-btn" id="updatePasswordBtn">
@@ -421,6 +426,7 @@ Gutu Game © 2026
 
 
 </div>
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -447,7 +453,6 @@ SUPABASE_KEY
 
 const message =
 document.getElementById("authMessage");
-
 
 
 
@@ -494,7 +499,6 @@ message.textContent =
 
 
 };
-
 
 
 
@@ -655,7 +659,7 @@ return;
 const {error} =
 await supabaseClient.auth.updateUser({
 
-password
+password:password
 
 });
 
