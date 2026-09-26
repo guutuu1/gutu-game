@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Gutu Game - Games</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:Arial,sans-serif;
+}
+
+
+body{
+
+min-height:100vh;
+
+background:
+radial-gradient(circle at top,#5c4300,#080808 60%);
+
+color:white;
+
+}
+
+
+
+.header{
+
+padding:20px;
+
+text-align:center;
+
+border-bottom:1px solid #6b5200;
+
+}
+
+
+
+.logo{
+
+font-size:30px;
+
+font-weight:bold;
+
+color:#ffd700;
+
+text-shadow:
+0 0 10px #ffd700,
+0 0 25px #b8860b;
+
+}
+
+
+
+.balance{
+
+margin:15px auto;
+
+max-width:400px;
+
+background:#151515;
+
+border:1px solid #b8860b;
+
+padding:15px;
+
+border-radius:15px;
+
+font-size:20px;
+
+color:#ffd700;
+
+}
+
+
+
+.container{
+
+max-width:500px;
+
+margin:auto;
+
+padding:20px;
+
+}
+
+
+
+.title{
+
+text-align:center;
+
+margin-bottom:20px;
+
+}
+
+
+
+.title h1{
+
+color:#ffd700;
+
+font-size:28px;
+
+}
+
+
+
+.title p{
+
+color:#ccc;
+
+margin-top:8px;
+
+}
+
+
+
+
+.games{
+
+display:grid;
+
+grid-template-columns:1fr;
+
+gap:20px;
+
+}
+
+
+
+.card{
+
+background:
+linear-gradient(
+145deg,
+rgba(255,215,0,.15),
+#111
+);
+
+
+border:1px solid #b8860b;
+
+border-radius:22px;
+
+padding:25px;
+
+text-align:center;
+
+box-shadow:
+0 0 20px rgba(255,215,0,.15);
+
+}
+
+
+
+.icon{
+
+font-size:70px;
+
+margin-bottom:15px;
+
+}
+
+
+
+.card h2{
+
+color:#ffd700;
+
+margin-bottom:10px;
+
+}
+
+
+
+.card p{
+
+color:#ccc;
+
+margin-bottom:20px;
+
+}
+
+
+
+.play-btn{
+
+width:100%;
+
+padding:15px;
+
+border:none;
+
+border-radius:12px;
+
+font-size:18px;
+
+font-weight:bold;
+
+background:#ffd700;
+
+color:#000;
+
+cursor:pointer;
+
+}
+
+
+
+.play-btn:hover{
+
+transform:scale(1.03);
+
+}
+
+
+
+.locked{
+
+opacity:.6;
+
+}
+
+
+
+.nav{
+
+position:fixed;
+
+bottom:0;
+
+left:0;
+
+right:0;
+
+background:#111;
+
+border-top:1px solid #6b5200;
+
+display:flex;
+
+justify-content:space-around;
+
+padding:15px;
+
+}
+
+
+
+.nav div{
+
+color:#ffd700;
+
+font-size:14px;
+
+}
+
+
+
+.footer{
+
+text-align:center;
+
+margin:70px 0 20px;
+
+color:#777;
+
+font-size:12px;
+
+}
+
+
+</style>
+
+</head>
+
+
+
+<body>
+
+
+<header class="header">
+
+
+<div class="logo">
+🐔 GUTU GAME
+</div>
+
+
+<div class="balance">
+
+🪙 Balance: <span id="balance">0.00</span> ETB
+
+</div>
+
+
+</header>
+
+
+
+
+<div class="container">
+
+
+
+<div class="title">
+
+<h1>
+🎮 Choose Game
+</h1>
+
+<p>
+Play your favorite Gutu games
+</p>
+
+</div>
+
+
+
+
+<div class="games">
+
+
+
+<div class="card">
+
+
+<div class="icon">
+🐔
+</div>
+
+
+<h2>
+Gutu Chicken Crash
+</h2>
+
+
+<p>
+Cash out before the chicken crashes!
+</p>
+
+
+<button
+class="play-btn"
+onclick="location.href='chicken.html'">
+
+PLAY NOW
+
+</button>
+
+
+</div>
+
+
+
+
+
+<div class="card">
+
+
+<div class="icon">
+🎰
+</div>
+
+
+<h2>
+Lucky Tap
+</h2>
+
+
+<p>
+Try your luck and win rewards.
+</p>
+
+
+<button
+class="play-btn"
+onclick="location.href='luckytap.html'">
+
+PLAY NOW
+
+</button>
+
+
+</div>
+
+
+
+
+
+<div class="card locked">
+
+
+<div class="icon">
+🚀
+</div>
+
+
+<h2>
+Rocket Game
+</h2>
+
+
+<p>
+Coming Soon...
+</p>
+
+
+<button
+class="play-btn"
+disabled>
+
+LOCKED
+
+</button>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+<div class="footer">
+
+Gutu Game © 2026
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="nav">
+
+<div>
+🏠 Home
+</div>
+
+<div>
+🎮 Games
+</div>
+
+<div>
+💰 Wallet
+</div>
+
+<div>
+👤 Profile
+</div>
+
+
+</div>
+
+
+
+<script>
+
+
+// Later we will connect this to Supabase wallet balance.
+
+
+</script>
+
+
+
+</body>
+
+  </html>
