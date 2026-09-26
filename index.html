@@ -4,11 +4,9 @@
 <head>
 
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Gutu Game</title>
-
 
 <style>
 
@@ -19,60 +17,29 @@ padding:0;
 font-family:Arial,sans-serif;
 }
 
-
 body{
-
 min-height:100vh;
-
-background:
-radial-gradient(circle at top,#8a6500,#050505 60%);
-
+background:radial-gradient(circle at top,#8a6500,#050505 60%);
 color:white;
-
 }
-
-
 
 .header{
-
 text-align:center;
-
 padding:25px 15px;
-
 }
-
-
 
 .logo{
-
 font-size:34px;
-
 font-weight:bold;
-
 color:#ffd700;
-
-text-shadow:
-0 0 10px #ffd700,
-0 0 25px #b8860b;
-
+text-shadow:0 0 10px #ffd700,0 0 25px #b8860b;
 }
-
-
 
 .container{
-
 max-width:450px;
-
 margin:auto;
-
 padding:15px;
-
 }
-
-
-
-/* WELCOME CARD */
-
 
 .welcome-card{
 
@@ -84,124 +51,80 @@ rgba(10,10,10,.95)
 );
 
 border:1px solid #c79a00;
-
 border-radius:25px;
-
 padding:35px 20px;
-
 text-align:center;
 
-box-shadow:
-0 0 30px rgba(255,215,0,.25);
+box-shadow:0 0 30px rgba(255,215,0,.25);
 
 }
-
-
 
 .chicken{
-
 font-size:85px;
-
 margin-bottom:15px;
-
 }
-
-
 
 .welcome-card h1{
-
 font-size:30px;
-
 color:#ffd700;
-
 margin-bottom:15px;
-
 }
-
-
 
 .welcome-card p{
-
 color:#ddd;
-
 line-height:1.6;
-
 }
-
 
 
 .features{
 
 display:grid;
-
 grid-template-columns:repeat(3,1fr);
-
 gap:10px;
-
 margin-top:25px;
 
 }
 
 
-
 .feature{
 
 background:#111;
-
 border:1px solid #806000;
-
 border-radius:15px;
-
 padding:15px 5px;
-
 font-size:25px;
 
 }
 
 
-
 .feature span{
 
 display:block;
-
 font-size:12px;
-
 color:#ccc;
-
 margin-top:8px;
 
 }
 
 
 
-/* LOGIN BOX */
-
-
 .auth-box{
 
 margin-top:25px;
-
 background:#111;
-
 border:1px solid #c79a00;
-
 border-radius:20px;
-
 padding:25px;
 
-box-shadow:
-0 0 20px rgba(255,215,0,.15);
+box-shadow:0 0 20px rgba(255,215,0,.15);
 
 }
-
 
 
 .auth-box h2{
 
 text-align:center;
-
 color:#ffd700;
-
 margin-bottom:20px;
 
 }
@@ -211,99 +134,71 @@ margin-bottom:20px;
 input{
 
 width:100%;
-
 padding:14px;
-
 margin:8px 0;
-
 border-radius:10px;
-
 border:none;
-
 font-size:16px;
 
 }
-
 
 
 button{
 
 width:100%;
-
 padding:14px;
-
 margin-top:10px;
-
 border:none;
-
 border-radius:10px;
-
 font-weight:bold;
-
 font-size:16px;
-
 cursor:pointer;
 
 }
 
 
-
 .signup-btn{
 
 background:#333;
-
 color:white;
 
 }
 
 
-
 .login-btn{
 
 background:#ffd700;
-
 color:black;
 
 }
 
 
-
 .forgot-btn{
 
 background:#222;
-
 color:#ffd700;
-
 border:1px solid #ffd700;
 
 }
 
 
-
 .message{
 
 text-align:center;
-
 margin-top:15px;
-
 color:#ffd700;
 
 }
 
 
-
 .footer{
 
 text-align:center;
-
 color:#888;
-
 font-size:12px;
-
 margin:25px;
 
 }
-
 
 </style>
 
@@ -316,42 +211,30 @@ margin:25px;
 <header class="header">
 
 <div class="logo">
-
 🐔 GUTU GAME
-
 </div>
 
 </header>
 
 
-
 <div class="container">
-
 
 
 <section class="welcome-card">
 
-
 <div class="chicken">
-
 🐔
-
 </div>
 
 
 <h1>
-
 Welcome to Gutu Game
-
 </h1>
 
 
 <p>
-
 Play exciting games with a premium experience.
-
 Secure wallet and smooth gameplay.
-
 </p>
 
 
@@ -360,160 +243,83 @@ Secure wallet and smooth gameplay.
 
 
 <div class="feature">
-
 🎮
-
-<span>
-
-Games
-
-</span>
-
+<span>Games</span>
 </div>
 
 
 <div class="feature">
-
 💰
-
-<span>
-
-Wallet
-
-</span>
-
+<span>Wallet</span>
 </div>
 
 
 <div class="feature">
-
 ⚡
-
-<span>
-
-Fast
-
-</span>
-
+<span>Fast</span>
 </div>
 
 
 </div>
 
-
-      </section>
-      <!-- LOGIN BOX -->
+</section>
 
 
-<section class="auth-box">
 
+<section class="auth-box" id="loginBox">
 
 <h2>
 🔐 Gutu Game Login
 </h2>
 
 
-
-<input
-id="email"
-type="email"
-placeholder="Enter email">
+<input id="email" type="email" placeholder="Enter email">
 
 
-
-<input
-id="password"
-type="password"
-placeholder="Enter password">
+<input id="password" type="password" placeholder="Enter password">
 
 
-
-<button
-class="signup-btn"
-id="signupBtn">
-
+<button class="signup-btn" id="signupBtn">
 SIGN UP
-
 </button>
 
 
-
-<button
-class="login-btn"
-id="loginBtn">
-
+<button class="login-btn" id="loginBtn">
 LOGIN
-
 </button>
 
 
-
-<button
-class="forgot-btn"
-id="forgotBtn">
-
+<button class="forgot-btn" id="forgotBtn">
 FORGOT PASSWORD
-
 </button>
 
 
-
-<p
-class="message"
-id="authMessage">
-
-</p>
-
+<p class="message" id="authMessage"></p>
 
 
 </section>
 
 
 
-
-<!-- RESET PASSWORD -->
-
-
-<section
-class="auth-box"
-id="resetBox"
-style="display:none;">
-
+<section class="auth-box" id="resetBox" style="display:none;">
 
 <h2>
 🔑 Reset Password
 </h2>
 
 
-<input
-id="newPassword"
-type="password"
-placeholder="New password">
+<input id="newPassword" type="password" placeholder="New password">
 
 
-
-<input
-id="confirmPassword"
-type="password"
-placeholder="Confirm password">
+<input id="confirmPassword" type="password" placeholder="Confirm password">
 
 
-
-<button
-class="login-btn"
-id="updatePasswordBtn">
-
+<button class="login-btn" id="updatePasswordBtn">
 UPDATE PASSWORD
-
 </button>
 
 
-
-<p
-class="message"
-id="resetMessage">
-
-</p>
+<p class="message" id="resetMessage"></p>
 
 
 </section>
@@ -527,16 +333,10 @@ Gutu Game © 2026
 </div>
 
 
-</div>
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-
 
 const SUPABASE_URL =
 "https://mkmrmpkeigrwbnbsfzqm.supabase.co";
@@ -560,7 +360,6 @@ document.getElementById("authMessage");
 
 
 /* SIGN UP */
-
 
 document
 .getElementById("signupBtn")
@@ -603,11 +402,10 @@ message.textContent =
 "❌ " + error.message;
 
 }
-
 else{
 
 message.textContent =
-"✅ Account created";
+"✅ Account created. Check your email to confirm.";
 
 }
 
@@ -619,7 +417,6 @@ message.textContent =
 
 
 /* LOGIN */
-
 
 document
 .getElementById("loginBtn")
@@ -678,7 +475,6 @@ window.location.href =
 
 /* FORGOT PASSWORD */
 
-
 document
 .getElementById("forgotBtn")
 .onclick = async()=>{
@@ -701,15 +497,17 @@ return;
 
 
 const {error} =
-await supabaseClient.auth
-.resetPasswordForEmail(
+await supabaseClient.auth.resetPasswordForEmail(
+
 email,
+
 {
 
 redirectTo:
-"https://gutu-game.onrender.com/index.html"
+"https://gutu-game.onrender.com/"
 
 }
+
 );
 
 
@@ -717,14 +515,14 @@ redirectTo:
 if(error){
 
 message.textContent =
-"❌ "+error.message;
+"❌ " + error.message;
 
 }
 
 else{
 
 message.textContent =
-"✅ Check your email";
+"✅ Check your email for reset link";
 
 }
 
@@ -736,7 +534,6 @@ message.textContent =
 
 
 /* UPDATE PASSWORD */
-
 
 document
 .getElementById("updatePasswordBtn")
@@ -751,16 +548,15 @@ const confirm =
 document.getElementById("confirmPassword").value;
 
 
-
-const reset =
+const resetMessage =
 document.getElementById("resetMessage");
 
 
 
 if(password !== confirm){
 
-reset.textContent =
-"Passwords do not match";
+resetMessage.textContent =
+"❌ Passwords do not match";
 
 return;
 
@@ -771,7 +567,7 @@ return;
 const {error} =
 await supabaseClient.auth.updateUser({
 
-password
+password:password
 
 });
 
@@ -779,15 +575,15 @@ password
 
 if(error){
 
-reset.textContent =
-"❌ "+error.message;
+resetMessage.textContent =
+"❌ " + error.message;
 
 }
 
 else{
 
-reset.textContent =
-"✅ Password updated";
+resetMessage.textContent =
+"✅ Password updated successfully";
 
 }
 
@@ -798,11 +594,11 @@ reset.textContent =
 
 
 
-/* PASSWORD RECOVERY */
-
+/* PASSWORD RECOVERY DETECTION */
 
 supabaseClient.auth
 .onAuthStateChange(
+
 (event)=>{
 
 
@@ -814,11 +610,17 @@ document
 .style.display="block";
 
 
+document
+.getElementById("loginBox")
+.style.display="none";
+
+
 }
 
 
-});
+}
 
+);
 
 
 </script>
@@ -826,4 +628,4 @@ document
 
 </body>
 
-      </html>
+</html>
