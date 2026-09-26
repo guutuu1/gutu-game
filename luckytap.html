@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Gutu Lucky Tap</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:Arial,sans-serif;
+}
+
+
+body{
+
+min-height:100vh;
+
+background:
+radial-gradient(circle at top,#8a6500,#050505 60%);
+
+color:white;
+
+text-align:center;
+
+}
+
+
+.container{
+
+max-width:450px;
+
+margin:auto;
+
+padding:20px;
+
+}
+
+
+h1{
+
+color:#ffd700;
+
+margin:20px 0;
+
+text-shadow:
+0 0 10px #ffd700;
+
+}
+
+
+.balance-box,
+.game-box{
+
+background:#111;
+
+border:1px solid #c79a00;
+
+border-radius:20px;
+
+padding:25px;
+
+margin-bottom:20px;
+
+box-shadow:
+0 0 20px rgba(255,215,0,.15);
+
+}
+
+
+
+.balance-box{
+
+font-size:22px;
+
+}
+
+
+
+.tap-area{
+
+font-size:90px;
+
+margin:25px 0;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+.tap-area:active{
+
+transform:scale(.9);
+
+}
+
+
+
+input{
+
+width:100%;
+
+padding:14px;
+
+margin:10px 0;
+
+border:none;
+
+border-radius:10px;
+
+font-size:16px;
+
+}
+
+
+
+button{
+
+width:100%;
+
+padding:15px;
+
+border:none;
+
+border-radius:10px;
+
+font-size:18px;
+
+font-weight:bold;
+
+cursor:pointer;
+
+background:#ffd700;
+
+color:black;
+
+}
+
+
+
+button:disabled{
+
+opacity:.5;
+
+}
+
+
+
+#result{
+
+margin-top:20px;
+
+font-size:22px;
+
+font-weight:bold;
+
+color:#ffd700;
+
+}
+
+
+
+.back-btn{
+
+margin-top:20px;
+
+background:#333;
+
+color:white;
+
+}
+
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>
+👆 Gutu Lucky Tap
+</h1>
+
+
+
+<div class="balance-box">
+
+Balance:
+
+<strong>
+
+<span id="balance">
+0.00
+</span>
+
+ETB
+
+</strong>
+
+</div>
+
+
+
+<div class="game-box">
+
+
+<p>
+Choose your bet
+</p>
+
+
+<input
+
+id="betAmount"
+
+type="number"
+
+value="10"
+
+min="1"
+
+placeholder="Bet amount"
+
+>
+
+
+
+<div class="tap-area" id="tapButton">
+
+👆
+
+</div>
+
+
+
+<button id="playBtn">
+
+LUCKY TAP
+
+</button>
+
+
+
+<div id="result"></div>
+
+
+</div>
+
+
+
+<button class="back-btn"
+
+onclick="window.location.href='games.html'">
+
+🎮 BACK TO GAMES
+
+</button>
+
+
+
+  </div>
+  <script>
+
+const SUPABASE_URL =
+"https://mkmrmpkeigrwbnbsfzqm.supabase.co";
+
+
+const SUPABASE_KEY =
+"sb_publishable_29l1O6k0suVDtgrwTDpEYw_SBeY4nIN";
+
+
+const supabaseClient =
+supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+
+
+let currentUser = null;
+
+
+
+const balanceElement =
+document.getElementById("balance");
+
+
+const resultElement =
+document.getElementById("result");
+
+
+const playBtn =
+document.getElementById("playBtn");
+
+
+
+
+
+// LOAD USER
+
+async function loadUser(){
+
+const {
+data,
+error
+} =
+await supabaseClient.auth.getUser();
+
+
+if(error || !data.user){
+
+window.location.href =
+"index.html";
+
+return;
+
+}
+
+
+currentUser =
+data.user;
+
+
+await loadBalance();
+
+}
+
+
+
+
+
+// LOAD BALANCE
+
+async function loadBalance(){
+
+
+const {
+data,
+error
+}
+=
+await supabaseClient
+
+.from("wallets")
+
+.select("balance")
+
+.eq(
+"user_id",
+currentUser.id
+)
+
+.single();
+
+
+
+if(error){
+
+console.log(error);
+
+resultElement.textContent =
+"Balance error";
+
+return;
+
+}
+
+
+balanceElement.textContent =
+Number(
+data.balance || 0
+).toFixed(2);
+
+
+}
+
+
+
+
+
+// PLAY GAME
+
+playBtn.onclick =
+async()=>{
+
+
+const bet =
+Number(
+document.getElementById("betAmount").value
+);
+
+
+
+if(!bet || bet <=0){
+
+resultElement.textContent =
+"Enter valid bet";
+
+return;
+
+}
+
+
+
+const currentBalance =
+Number(
+balanceElement.textContent
+);
+
+
+
+if(currentBalance < bet){
+
+resultElement.textContent =
+"⚠️ Please deposit to continue playing";
+
+return;
+
+}
+
+
+
+playBtn.disabled = true;
+
+
+resultElement.textContent =
+"🎲 Trying your luck...";
+
+
+
+// RANDOM RESULT
+
+const random =
+Math.random()*100;
+
+
+let multiplier = 0;
+
+
+if(random < 85){
+
+// LOSE
+
+multiplier = 0;
+
+
+}
+
+else if(random < 97){
+
+// WIN 2X
+
+multiplier = 2;
+
+
+}
+
+else{
+
+// WIN 5X
+
+multiplier = 5;
+
+
+}
+
+
+
+
+let amountChange;
+
+
+
+if(multiplier === 0){
+
+
+amountChange =
+-bet;
+
+
+resultElement.textContent =
+"❌ You lost " +
+bet.toFixed(2) +
+" ETB";
+
+
+}
+
+else{
+
+
+amountChange =
+bet * multiplier;
+
+
+resultElement.textContent =
+"🎉 You won " +
+amountChange.toFixed(2) +
+" ETB (" +
+multiplier +
+"x)";
+
+
+}
+
+
+
+
+
+// UPDATE WALLET
+
+
+const {
+error
+}
+=
+await supabaseClient.rpc(
+
+"increment_balance",
+
+{
+
+p_user_id:
+currentUser.id,
+
+p_amount:
+amountChange
+
+}
+
+);
+
+
+
+if(error){
+
+console.log(error);
+
+resultElement.textContent =
+"Wallet update error";
+
+}
+
+
+await loadBalance();
+
+
+
+playBtn.disabled = false;
+
+
+};
+
+
+
+
+
+loadUser();
+
+
+</script>
+
+
+</body>
+
+</html>
